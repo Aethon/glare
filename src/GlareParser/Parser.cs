@@ -4,10 +4,30 @@ namespace Aethon.GlareParser
 {
     public delegate ImmutableList<Matcher<T>> Parser<T>(Finalizer<T> registrar);
 
-    public delegate ImmutableList<Matcher<T>> Matcher<T>(T input);
+    public delegate MatchResult<T> Matcher<T>(T input);
 
-    public delegate ImmutableList<Matcher<T>> Finalizer<T>(ParseNode match);
+    public delegate MatchResult<T> Finalizer<T>(ParseNode match);
 
+    public sealed class MatchResult<T>
+    {
+        public MatchResult(ImmutableList<ParseNode> matches, ImmutableList<Matcher<T>> remainingMatchers)
+        {
+            Matches = matches;
+            RemainingMatchers = remainingMatchers;
+        }
+
+        public ImmutableList<ParseNode> Matches { get; }
+        public ImmutableList<Matcher<T>> RemainingMatchers { get; }
+
+        public void Deconstruct(out ImmutableList<ParseNode> matches, out ImmutableList<Matcher<T>> remainingMatchers)
+        {
+            matches = Matches;
+            remainingMatchers = RemainingMatchers;
+        }
+
+        public MatchResult<T> Add(MatchResult<T> other) =>
+            new MatchResult<T>(Matches.AddRange(other.Matches), RemainingMatchers.AddRange(other.RemainingMatchers));
+    }
 
     public abstract class ParseNode
     {

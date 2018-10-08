@@ -19,7 +19,7 @@ namespace Aethon.GlareParser
 
         public static Parser<T> Match<T>(Predicate<T> predicate) =>
             f => Matchers<T>(i => predicate(i) ? f(parsedValue(i)) : NoMatch<T>());
-        
+
         public static Parser<T> Optional<T>(Parser<T> inner) =>
             f => inner(f).Add(i => f(new MissingValue()));
 
@@ -27,14 +27,14 @@ namespace Aethon.GlareParser
         public static Parser<T> Sequence<T>(params Parser<T>[] items) =>
             f =>
             {
-                var results = new List<ParseNode>();
+                var results = ImmutableList<ParseNode>.Empty;
 
-                ImmutableList<Matcher<T>> F2(ParseNode r)
+                MatchResult<T> F2(ParseNode r)
                 {
-                    results.Add(r);
+                    results = results.Add(r);
                     return results.Count == items.Length
                         ? f(new ParsedSequence(ImmutableList.CreateRange<object>(results)))
-                        : items[results.Count](F2);
+                        : new MatchResult<T>(results, items[results.Count](F2));
                 }
 
                 return items[0](F2);
@@ -50,57 +50,52 @@ namespace Aethon.GlareParser
         public static Parser<T> OneOrMore<T>(Parser<T> item) =>
             f =>
             {
-                var results = new List<ParseNode>();
+                var results = ImmutableList<ParseNode>.Empty;
 
-                ImmutableList<Matcher<T>> F2(ParseNode r)
+                MatchResult<T> F2(ParseNode r)
                 {
-                    results.Add(r);
-                    return f(new ParsedSequence(ImmutableList.CreateRange<object>(results))).AddRange(item(F2));
+                    results = results.Add(r);
+                    var (rs, ms) = f(new ParsedSequence(ImmutableList.CreateRange<object>(results)));
+                    return new MatchResult<T>(rs, ms.AddRange(item(F2)));
                 }
 
                 return item(F2);
             };
 
-        
+
         public static IEnumerable<ParseNode> Parse<T>(this Parser<T> @this, Input<T> input)
         {
-            var results = new Queue<ParseNode>();
             var remainingMatchers = @this(r =>
-            {
-                results.Enqueue(r);
-                return ImmutableList<Matcher<T>>.Empty;
-            });
+                new MatchResult<T>(ImmutableList.Create(r), ImmutableList<Matcher<T>>.Empty)
+            );
             while (remainingMatchers.Count > 0 && input.Next())
             {
-                remainingMatchers = remainingMatchers.SelectMany(t => t(input.Current)).ToImmutableList();
-                while (results.Count > 0)
-                    yield return results.Dequeue();
+                ImmutableList<ParseNode> results;
+                (results, remainingMatchers) = remainingMatchers.Select(t => t(input.Current)).Aggregate((a, b) => a.Add(b));
+                foreach (var result in results)
+                    yield return result;
             }
         }
-        
+
         public static IEnumerable<ParseNode> ParseAll<T>(this Parser<T> @this, Input<T> input)
         {
-            var results = new Queue<ParseNode>();
             var remainingMatchers = @this(r =>
-            {
-                results.Enqueue(r);
-                return ImmutableList<Matcher<T>>.Empty;
-            });
+                new MatchResult<T>(ImmutableList.Create(r), ImmutableList<Matcher<T>>.Empty)
+            );
+            var results = ImmutableList<ParseNode>.Empty;
             while (remainingMatchers.Count > 0 && input.Next())
-            {
-                results.Clear();
-                remainingMatchers = remainingMatchers.SelectMany(t => t(input.Current)).ToImmutableList();
-            }
+                (results, remainingMatchers) = remainingMatchers.Select(t => t(input.Current)).Aggregate((a, b) => a.Add(b));
 
             if (!input.End) yield break;
-            while (results.Count > 0)
-                yield return results.Dequeue();
+            foreach (var result in results)
+                yield return result;
         }
-        
+
         private static ParseNode parsedValue<T>(T value) => new ParsedValue<T>(value);
 
-        private static ImmutableList<Matcher<T>> NoMatch<T>() => ImmutableList<Matcher<T>>.Empty;
-        
+        private static MatchResult<T> NoMatch<T>() =>
+            new MatchResult<T>(ImmutableList<ParseNode>.Empty, ImmutableList<Matcher<T>>.Empty);
+
         private static ImmutableList<Matcher<T>> Matchers<T>(params Matcher<T>[] matchers) =>
             ImmutableList.CreateRange(matchers);
     }
