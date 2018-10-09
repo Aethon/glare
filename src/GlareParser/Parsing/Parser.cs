@@ -1,6 +1,6 @@
 ﻿using System.Collections.Immutable;
 
-namespace Aethon.GlareParser
+namespace Aethon.Glare.Parsing
 {
     public delegate ImmutableList<Matcher<T>> Parser<T>(Finalizer<T> registrar);
 

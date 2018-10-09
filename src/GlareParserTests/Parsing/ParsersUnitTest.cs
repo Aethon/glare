@@ -4,9 +4,9 @@ using System.Reflection;
 using FluentAssertions;
 using Xunit;
 using Xunit.Abstractions;
-using static Aethon.GlareParser.Parsers;
+using static Aethon.Glare.Parsing.Parsers;
 
-namespace Aethon.GlareParser
+namespace Aethon.Glare.Parsing
 {
     public class ParsersUnitTest
     {

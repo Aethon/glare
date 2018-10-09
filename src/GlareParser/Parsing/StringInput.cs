@@ -1,4 +1,4 @@
-﻿namespace Aethon.GlareParser
+﻿namespace Aethon.Glare.Parsing
 {
     public sealed class StringInput: Input<char>
     {

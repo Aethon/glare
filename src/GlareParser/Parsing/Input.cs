@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-namespace Aethon.GlareParser
+namespace Aethon.Glare.Parsing
 {
     public abstract class Input<T>
     {

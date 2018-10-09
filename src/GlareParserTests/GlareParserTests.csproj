@@ -5,7 +5,7 @@
 
         <IsPackable>false</IsPackable>
 
-        <RootNamespace>Aethon.GlareParser</RootNamespace>
+        <RootNamespace>Aethon.Glare</RootNamespace>
 
         <LangVersion>7.3</LangVersion>
     </PropertyGroup>
