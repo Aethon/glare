@@ -20,5 +20,13 @@ namespace Aethon.Glare.Util
             return value;
         }
         
+        public static string NotNullOrEmpty(string value, string name)
+        {
+            if (value == null)
+                throw new ArgumentNullException(name);
+            if (value.Length == 0)
+                throw new ArgumentException("Cannot be empty", name);
+            return value;
+        }        
     }
 }

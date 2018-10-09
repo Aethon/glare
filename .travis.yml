@@ -1,5 +1,8 @@
 language: csharp
 mono: none
 dotnet: 2.1.403
+install:
+  - dotnet tool install coveralls.net --version 1.0.0 --tool-path dotnet/tools
+
 script:
   - dotnet/ci-build.sh
