@@ -1,2 +1,8 @@
+# silly mac stuff
 .DS_Store
-.idea/
+
+# Rider project info 
+/.idea/
+
+# dotnet-installed tools
+/tools/

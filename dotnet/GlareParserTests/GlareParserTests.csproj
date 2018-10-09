@@ -10,15 +10,28 @@
         <LangVersion>7.3</LangVersion>
     </PropertyGroup>
 
+    <PropertyGroup>
+        <CoverageThreshold>90</CoverageThreshold>
+    </PropertyGroup>
+    
     <ItemGroup>
+        <PackageReference Include="coverlet.msbuild" Version="2.3.1">
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+          <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
         <PackageReference Include="FluentAssertions" Version="5.4.2" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.8.0" />
         <PackageReference Include="xunit" Version="2.3.1" />
         <PackageReference Include="xunit.runner.visualstudio" Version="2.3.1" />
+        <DotNetCliToolReference Include="dotnet-reportgenerator-cli" Version="4.0.0" />
     </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\GlareParser\GlareParser.csproj" />
     </ItemGroup>
 
+    <Target Name="Coverage">
+        <Exec Command="dotnet test --configuration $(Configuration) -p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:CoverletOutput=&quot;./bin/$(Configuration)/coverage/&quot; /p:Threshold=$(CoverageThreshold) &quot;$(MSBuildProjectFullPath)&quot;" />
+        <Exec Command="dotnet reportgenerator &quot;-reports:bin/$(Configuration)/coverage/coverage.opencover.xml&quot; &quot;-targetdir:bin/$(Configuration)/coverage/report&quot; -reporttypes:HTMLInline" />
+    </Target>
 </Project>
