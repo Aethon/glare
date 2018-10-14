@@ -6,37 +6,39 @@ namespace Aethon.Glare.Parsing
     /// <summary>
     /// An <see cref="T:Aethon.Glare.Parsing.IParser`1" /> with a description.
     /// </summary>
-    /// <typeparam name="T">Input element type</typeparam>
-    public class BasicParser<T> : IParser<T>
+    /// <typeparam name="TInput">Input element type</typeparam>
+    /// <typeparam name="TMatch">Parse result type</typeparam>
+    public class BasicParser<TInput, TMatch> : IParser<TInput, TMatch>
     {
         /// <summary>
         /// Function to create the work list to start the parser.
         /// </summary>
-        private readonly Func<Resolver<T>, WorkList<T>> _start;
+        private readonly Func<Resolver<TInput, TMatch>, WorkList<TInput>> _start;
         
         /// <summary>
         /// Description of the parser.
         /// </summary>
         private readonly string _description;
 
-        public WorkList<T> Start(Resolver<T> resolver) => _start(resolver);
+        public object Key => _start; // use the start function as the key for the parser
+        public WorkList<TInput> Start(Resolver<TInput, TMatch> resolver) => _start(resolver);
 
         /// <summary>
         /// Creates a new parser from this parser with a new description.
         /// </summary>
         /// <param name="description">Description of the parser</param>
         /// <returns>The new parser</returns>
-        public BasicParser<T> WithDescription(string description) =>
-            new BasicParser<T>(description, _start);
+        public BasicParser<TInput, TMatch> WithDescription(string description) =>
+            new BasicParser<TInput, TMatch>(description, _start);
 
         public override string ToString() => _description;
 
         /// <summary>
-        /// Creates a new <see cref="BasicParser{T}"/>
+        /// Creates a new <see cref="T:BasicParser`2"/>
         /// </summary>
         /// <param name="description">Description of the parser</param>
         /// <param name="start">Function to create the work list to start the parser</param>
-        public BasicParser(string description, Func<Resolver<T>, WorkList<T>> start)
+        public BasicParser(string description, Func<Resolver<TInput, TMatch>, WorkList<TInput>> start)
         {
             _start = start;
             _description = description;
