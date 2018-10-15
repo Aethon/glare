@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Net;
 using static Aethon.Glare.Parsing.WorkListExtensions;
 using static Aethon.Glare.Parsing.ParserExtensions;
 using static Aethon.Glare.Util.Preconditions;
@@ -9,6 +10,20 @@ namespace Aethon.Glare.Parsing
 {
     public static class Parsers
     {
+        /// <summary>
+        /// Creates a parser that resolves a match without consuming the input stream.
+        /// </summary>
+        /// <param name="value">Value the parser will resolve</param>
+        /// <typeparam name="TInput">Input element type</typeparam>
+        /// <typeparam name="TValue">Value type (parser match type)</typeparam>
+        /// <returns>The new parser</returns>
+        public static BasicParser<TInput, TValue> Value<TInput, TValue>(TValue value)
+        {
+            NotNull(value, nameof(value));
+            return Parser<TInput, TValue>(resolve => resolve(value))
+                .WithDescription($"{{Predicate<{typeof(TInput).Name}>}}");
+        }
+        
         /// <summary>
         /// Creates a parser that matches a single input element based on a predicate.
         /// </summary>
@@ -21,8 +36,8 @@ namespace Aethon.Glare.Parsing
             return Parser<TInput, TInput>(resolve => Work<TInput>(
                     input => predicate(input)
                         ? resolve(input)
-                        : WorkList<TInput>.Nothing)
-                )
+                        : WorkList<TInput>.Nothing
+                ))
                 .WithDescription($"{{Predicate<{typeof(TInput).Name}>}}");
         }
 
@@ -32,7 +47,7 @@ namespace Aethon.Glare.Parsing
         /// <param name="value">Value to match</param>
         /// <typeparam name="TInput">Input element type</typeparam>
         /// <returns>The new parser</returns>
-        public static BasicParser<TInput, TInput> Value<TInput>(TInput value)
+        public static BasicParser<TInput, TInput> Input<TInput>(TInput value)
         {
             NotNull(value, nameof(value));
             return Match<TInput>(i => value.Equals(i))
@@ -47,7 +62,7 @@ namespace Aethon.Glare.Parsing
         /// <typeparam name="TMatch">Parser match type</typeparam>
         /// <returns>The new parser</returns>
         public static BasicParser<TInput, Maybe<TMatch>> Optional<TInput, TMatch>(IParser<TInput, TMatch> parser) =>
-            Parser<TInput, Maybe<TMatch>>(resolve => Work<TInput>(i => resolve(Maybe<TMatch>.Empty)).Add(parser, t => resolve(new Maybe<TMatch>(t))))
+            Parser<TInput, Maybe<TMatch>>(resolve => resolve(Maybe<TMatch>.Empty).Add(parser, match => resolve(new Maybe<TMatch>(match))))
                 .WithDescription($"({parser})?");
 
         /// <summary>
@@ -80,8 +95,7 @@ namespace Aethon.Glare.Parsing
         {
             NotNull(item, nameof(item));
             return Parser<TInput, ImmutableList<TMatch>>(
-                    resolve => Work(OneOrMore(item), resolve)
-                        .Add(input => resolve(ImmutableList<TMatch>.Empty))
+                    resolve => resolve(ImmutableList<TMatch>.Empty).Add(OneOrMore(item), resolve)
                 )
                 .WithDescription($"({item})*");
         }
@@ -115,5 +129,54 @@ namespace Aethon.Glare.Parsing
                 )
                 .WithDescription($"({item})+");
         }
+
+        public static BasicParser<TInput, ImmutableList<TMatch>> SeparatedList<TInput, TMatch, TSeparator>(
+            IParser<TInput, TMatch> item, IParser<TInput, TSeparator> separator)
+        {
+            var listParser = NonEmptySeparatedList(item, separator);
+            return Parser<TInput, ImmutableList<TMatch>>(resolve =>
+                resolve(ImmutableList<TMatch>.Empty).Add(listParser, resolve));
+        }
+
+        public static BasicParser<TInput, ImmutableList<TMatch>> NonEmptySeparatedList<TInput, TMatch, TSeparator>(
+            IParser<TInput, TMatch> item, IParser<TInput, TSeparator> separator)
+        {
+            NotNull(item, nameof(item));
+            NotNull(separator, nameof(separator));
+            
+            return Parser<TInput, ImmutableList<TMatch>>(resolve =>
+                    {
+                        WorkList<TInput> MakeMatchWork(ImmutableList<TMatch> results)
+                        {
+                            WorkList<TInput> Resolve(TMatch match)
+                            {
+                                var newResults = results.Add(match);
+                                return resolve(newResults)
+                                    .Add(MakeSeparatorWork(newResults));
+                            }
+
+                            return Work(item, Resolve);
+                        }
+
+                        WorkList<TInput> MakeSeparatorWork(ImmutableList<TMatch> results)
+                        {
+                            WorkList<TInput> Resolve(TSeparator match) => MakeMatchWork(results);
+                            
+                            return Work(separator, Resolve);
+                        }
+                        return MakeMatchWork(ImmutableList<TMatch>.Empty);
+                    }
+                )
+                .WithDescription($"({item})+");
+        }
+        
+        /// <summary>
+        /// Creates a new <see cref="T:DeferredParser`2"/>.
+        /// </summary>
+        /// <typeparam name="TInput">Input element type</typeparam>
+        /// <typeparam name="TMatch">Parse result type</typeparam>
+        /// <returns>The deferred parser</returns>
+        public static DeferredParser<TInput, TMatch> Deferred<TInput, TMatch>() => new DeferredParser<TInput, TMatch>();
+
     }
 }

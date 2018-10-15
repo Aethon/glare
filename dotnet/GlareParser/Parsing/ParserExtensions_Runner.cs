@@ -45,20 +45,23 @@ namespace Aethon.Glare.Parsing
             NotNull((object)input, nameof(input)); // cast tells inspections that we are not enumerating it here
             NotNull(log, nameof(log));
             
-            var results = new List<TMatch>();
-            var workList = Work(@this, m =>
-            {
-                results.Add(m);
-                return WorkList<TInput>.Nothing;
-            });
             using (var enumerator = input.GetEnumerator())
             {
-                while (!workList.IsEmpty() && enumerator.MoveNext())
+                var results = new List<TMatch>();
+                
+                var workList = @this.Start(match => {
+                    results.Add(match);
+                    return WorkList<TInput>.Nothing;
+                });
+                
+                while (true)
                 {
-                    workList = Apply(workList, enumerator.Current, log);
                     foreach (var match in results)
                         yield return match;
                     results.Clear();
+                    if (workList.IsEmpty() || !enumerator.MoveNext())
+                        break;
+                    workList = Apply(workList, enumerator.Current, log);
                 }
             }
         }
@@ -94,9 +97,8 @@ namespace Aethon.Glare.Parsing
             NotNull(log, nameof(log));
 
             var results = new List<TMatch>();
-            var workList = Work(@this, m =>
-            {
-                results.Add(m);
+            var workList = @this.Start(match => {
+                results.Add(match);
                 return WorkList<TInput>.Nothing;
             });
             using (var enumerator = input.GetEnumerator())
