@@ -1,0 +1,131 @@
+options {
+    name PopSyn;
+    namespace com.code42.popsyn.syntax;
+    trivia /(?ms)(?:(?:\s+)|(?:\/\/[^\r\n]*$)|(?:\/\*.*\*\/))+/;
+}
+
+tokens {
+	ABSTRACT_KEYWORD -> "abstract";
+
+	ARROW -> "->";
+
+	CLOSE_BRACE -> "}";
+	COLON -> ":";
+	COMMA -> ",";
+	DOT -> ".";
+	DOTTED_IDENTIFIER -> /\b[a-zA-z_][a-zA-z0-9_]*(?:\.[a-zA-z_][a-zA-z0-9_]*)+\b/;
+  IDENTIFIER -> /\b[a-zA-Z_][a-zA-Z0-9_]*\b/;
+  NAME_KEYWORD -> "name";
+  NAMESPACE_KEYWORD -> "namespace";
+	OPEN_BRACE -> "{";
+	OPTIONS_KEYWORD -> "options";
+	PATTERN -> /\/(?:\\\/|[^\/])*\//;
+  PLUS -> "+";
+  QUESTION_MARK -> "?";
+  SEMANTIC_TEXT -> /(?ms)`(?:``|[^`])*`/;
+  SEMICOLON -> ";";
+  STAR -> "*";
+  STRING_LITERAL -> /"(?:\\"|[^"])*"/;
+  SYNTAX_KEYWORD -> "syntax";
+  TOKENS_KEYWORD -> "tokens";
+  TRIVIA_KEYWORD -> "trivia";
+  UPRIGHT -> "|";
+  KLEENE -> PLUS | STAR | QUESTION_MARK;
+}
+
+syntax {
+
+    abstract DescribedSyntax ->
+        semantics: SEMANTIC_TEXT*;
+
+    CompilationUnit ->
+        Options?,
+        tokens: TokenSet?,
+        syntax: SyntaxSet?;
+        // TODO: EOF
+
+    Options ->
+        OPTIONS_KEYWORD,
+        OPEN_BRACE,
+        Option*,
+        CLOSE_BRACE;
+
+    abstract Option: DescribedSyntax;
+
+    TriviaOption: Option ->
+        TRIVIA_KEYWORD,
+        PATTERN,
+        SEMICOLON;
+
+    NameOption: Option ->
+        NAME_KEYWORD,
+        name: IDENTIFIER,
+        SEMICOLON;
+
+    NamespaceOption: Option ->
+        NAMESPACE_KEYWORD,
+        namespace: DOTTED_IDENTIFIER,
+        SEMICOLON;
+
+    TokenSet ->
+        TOKENS_KEYWORD,
+        OPEN_BRACE,
+        tokenDefs: TokenDef*,
+        CLOSE_BRACE;
+
+    TokenDef: DescribedSyntax ->
+        name: IDENTIFIER,
+        ARROW,
+        content: TokenContentDef,
+        SEMICOLON;
+
+    abstract TokenContentDef;
+
+    PatternTokenContent: TokenContentDef ->
+        PATTERN;
+
+    LiteralTokenContent: TokenContentDef ->
+        text: STRING_LITERAL;
+
+    AlternateTokenContent: TokenContentDef ->
+        identifiers: IDENTIFIER*UPRIGHT;
+
+    SyntaxSet ->
+        SYNTAX_KEYWORD,
+        OPEN_BRACE,
+        syntaxDefs: SyntaxDef*,
+        CLOSE_BRACE;
+
+    SyntaxDef: DescribedSyntax ->
+        ABSTRACT_KEYWORD?,
+        name: IDENTIFIER,
+        base: BaseSyntax?,
+        productionList: ProductionList?,
+        SEMICOLON;
+
+    BaseSyntax ->
+        COLON,
+        name: IDENTIFIER;
+
+    ProductionList ->
+        ARROW,
+        members: MemberDef+;
+
+    MemberDef: DescribedSyntax ->
+        name: MemberName?,
+        type: TypeRef;
+
+    MemberName ->
+        name: IDENTIFIER,
+        COLON;
+
+    abstract TypeRef;
+
+    ScalarTypeRef: TypeRef ->
+        identifier: IDENTIFIER;
+
+    AmplifiedTypeRef: TypeRef ->
+        elementType: TypeRef,
+        amplification: KLEENE,
+        separator: IDENTIFIER?;
+}

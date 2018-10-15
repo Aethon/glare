@@ -1,4 +1,7 @@
+using System;
+using System.Collections.Immutable;
 using System.Linq;
+using System.Reflection.Metadata.Ecma335;
 using FluentAssertions;
 using Xunit;
 using Xunit.Abstractions;
@@ -7,13 +10,10 @@ using static Aethon.Glare.Parsing.ParserExtensions;
 
 namespace Aethon.Glare.Parsing
 {
-    public class ParsersUnitVerifications
+    public class ParsersUnitTests : ParsingUnitTest
     {
-        private readonly ITestOutputHelper _output;
-
-        public ParsersUnitVerifications(ITestOutputHelper output)
+        public ParsersUnitTests(ITestOutputHelper output) : base(output)
         {
-            _output = output;
         }
 
         [Fact]
@@ -21,7 +21,7 @@ namespace Aethon.Glare.Parsing
         {
             var subject = Match<char>(i => i == 'a');
 
-            var results = subject.ParseAndDump("a", _output);
+            var results = subject.ParseAndDump("a", Out);
 
             results.Should().BeEquivalentTo('a');
         }
@@ -31,7 +31,7 @@ namespace Aethon.Glare.Parsing
         {
             var subject = Match<char>(i => i == 'a');
 
-            var results = subject.ParseAndDump("b", _output);
+            var results = subject.ParseAndDump("b", Out);
 
             results.Should().BeEmpty();
         }
@@ -39,9 +39,9 @@ namespace Aethon.Glare.Parsing
         [Fact]
         public void Optional_WithMatchingStream_MatchesAndAddsMissingMatch()
         {
-            var subject = Optional(Value('a'));
+            var subject = Optional(Input('a'));
 
-            var results = subject.ParseAndDump("a", _output);
+            var results = subject.ParseAndDump("a", Out);
 
             results.Should().BeEquivalentTo(new Maybe<char>('a'), Maybe<char>.Empty);
         }
@@ -49,9 +49,9 @@ namespace Aethon.Glare.Parsing
         [Fact]
         public void Optional_WithNonMatchingStream_MatchesWithMissingMatch()
         {
-            var subject = Optional(Value('a'));
+            var subject = Optional(Input('a'));
 
-            var results = subject.ParseAndDump("b", _output);
+            var results = subject.ParseAndDump("b", Out);
 
             results.Should().BeEquivalentTo(Maybe<char>.Empty);
         }
@@ -61,7 +61,7 @@ namespace Aethon.Glare.Parsing
         {
             var subject = OneOrMore(Match<char>(i => i == 'a')).As(c => new string(c.ToArray()));
 
-            var results = subject.ParseAllAndDump("aaa", _output);
+            var results = subject.ParseAllAndDump("aaa", Out);
 
             results.Should().BeEquivalentTo("aaa");
         }
@@ -69,9 +69,9 @@ namespace Aethon.Glare.Parsing
         [Fact]
         public void B()
         {
-            var subject = Value('a').Then(a => Value('b').Then(b => Value('c').As(c => (a, b, c))));
+            var subject = Input('a').Then(a => Input('b').Then(b => Input('c').As(c => (a, b, c))));
 
-            var results = subject.ParseAllAndDump("abc", _output);
+            var results = subject.ParseAllAndDump("abc", Out);
 
             results.Should().BeEquivalentTo(('a', 'b', 'c'));
         }
@@ -119,20 +119,20 @@ namespace Aethon.Glare.Parsing
             var type = OneOf(name, oneOrMore, zeroOrMore).WithDescription("Type");
             oneOrMore.Set(
                 from t in type
-                from _ in Value('+')
+                from _ in Input('+')
                 select new ListOf(t, false)
             );
             zeroOrMore.Set(
                 from t in type
-                from _ in Value('*')
+                from _ in Input('*')
                 select new ListOf(t, true)
             );
 
-            type.ParseAndDump("b", _output);
+            type.ParseAndDump("b", Out);
 
-            type.ParseAndDump("b+*", _output);
+            type.ParseAndDump("b+*", Out);
 
-            type.ParseAllAndDump("number+*", _output);
+            type.ParseAllAndDump("number+*", Out);
         }
     }
 }

@@ -33,14 +33,6 @@ namespace Aethon.Glare.Parsing
             new BasicParser<TInput, TMatch>(description, start);
 
         /// <summary>
-        /// Creates a new <see cref="T:DeferredParser`2"/>.
-        /// </summary>
-        /// <typeparam name="TInput">Input element type</typeparam>
-        /// <typeparam name="TMatch">Parse result type</typeparam>
-        /// <returns>The deferred parser</returns>
-        public static DeferredParser<TInput, TMatch> Deferred<TInput, TMatch>() => new DeferredParser<TInput, TMatch>();
-
-        /// <summary>
         /// Creates a new parser that transforms the output of this parser
         /// </summary>
         /// <param name="this">Parser to transform</param>
@@ -65,10 +57,6 @@ namespace Aethon.Glare.Parsing
         public static BasicParser<TInput, TMatch2> Then<TInput, TMatch1, TMatch2>(this IParser<TInput, TMatch1> @this,
             Func<TMatch1, IParser<TInput, TMatch2>> next) =>
             Parser<TInput, TMatch2>(resolver => Work(@this, match1 => Work(next(match1), resolver)));
-
-//         public static IParser<TInput, TResult2> SelectMany<TInput, TResult1, TResult2>(
-//            this IParser<TInput, TResult1> @this,
-//            Func<TResult1, IParser<TInput, TResult2>> next) => Then(@this, next);
 
         /// <summary>
         /// Binds the output of this parser to another parser and transforms the results of both parsers to
