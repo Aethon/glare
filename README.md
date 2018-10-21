@@ -21,7 +21,6 @@ The Glare parser is a parser combinator library implemented as a [GLR](https://e
 ### Workflow
 To generate the coverage report:
 ```
-cd dotnet
 dotnet msbuild -t:Coverage
 open GlareParserTests/bin/Debug/coverage/report/index.htm
 ```
