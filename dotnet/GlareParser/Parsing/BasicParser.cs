@@ -20,7 +20,10 @@ namespace Aethon.Glare.Parsing
         /// </summary>
         private readonly string _description;
 
+        /// <inheritdoc/>
         public object Key => _start; // use the start function as the key for the parser
+        
+        /// <inheritdoc/>
         public WorkList<TInput> Start(Resolver<TInput, TMatch> resolver) => _start(resolver);
 
         /// <summary>
@@ -31,6 +34,7 @@ namespace Aethon.Glare.Parsing
         public BasicParser<TInput, TMatch> WithDescription(string description) =>
             new BasicParser<TInput, TMatch>(description, _start);
 
+        /// <inheritdoc/>
         public override string ToString() => _description;
 
         /// <summary>
