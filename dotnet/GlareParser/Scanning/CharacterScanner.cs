@@ -4,8 +4,16 @@ using static Aethon.Glare.Util.Preconditions;
 
 namespace Aethon.Glare.Scanning
 {
+    /// <summary>
+    /// Scans character input, producing a list of "words", marks, spaces and newlines.
+    /// </summary>
     public static class CharacterScanner
     {
+        /// <summary>
+        /// Scans character input, producing a list of "words", marks, spaces and newlines.
+        /// </summary>
+        /// <param name="input">Input characters</param>
+        /// <returns>List of <see cref="ScanToken"/>s</returns>
         public static IEnumerable<ScanToken> Scan(IEnumerable<char> input)
         {
             NotNull((object) input, nameof(input));

@@ -8,6 +8,9 @@ using static Aethon.Glare.Util.Preconditions;
 
 namespace Aethon.Glare.Parsing
 {
+    /// <summary>
+    /// Factories for creating general Glare parsers.
+    /// </summary>
     public static class Parsers
     {
         /// <summary>
@@ -130,6 +133,15 @@ namespace Aethon.Glare.Parsing
                 .WithDescription($"({item})+");
         }
 
+        /// <summary>
+        /// Creates a parser that matches one or more items interspersed with a separator.
+        /// </summary>
+        /// <param name="item">Parser to match items</param>
+        /// <param name="separator">Parser to match separators</param>
+        /// <typeparam name="TInput">Input element type</typeparam>
+        /// <typeparam name="TMatch">Parser match type</typeparam>
+        /// <typeparam name="TSeparator">Separator parser match type</typeparam>
+        /// <returns>The new parser</returns>
         public static BasicParser<TInput, ImmutableList<TMatch>> SeparatedList<TInput, TMatch, TSeparator>(
             IParser<TInput, TMatch> item, IParser<TInput, TSeparator> separator)
         {
@@ -138,6 +150,15 @@ namespace Aethon.Glare.Parsing
                 resolve(ImmutableList<TMatch>.Empty).Add(listParser, resolve));
         }
 
+        /// <summary>
+        /// Creates a parser that any number of items interspersed with a separator.
+        /// </summary>
+        /// <param name="item">Parser to match items</param>
+        /// <param name="separator">Parser to match separators</param>
+        /// <typeparam name="TInput">Input element type</typeparam>
+        /// <typeparam name="TMatch">Parser match type</typeparam>
+        /// <typeparam name="TSeparator">Separator parser match type</typeparam>
+        /// <returns>The new parser</returns>
         public static BasicParser<TInput, ImmutableList<TMatch>> NonEmptySeparatedList<TInput, TMatch, TSeparator>(
             IParser<TInput, TMatch> item, IParser<TInput, TSeparator> separator)
         {
