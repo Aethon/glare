@@ -1,12 +1,8 @@
-using System;
 using System.Collections.Immutable;
-using System.Linq;
-using System.Reflection.Metadata.Ecma335;
 using FluentAssertions;
 using Xunit;
 using Xunit.Abstractions;
-using static Aethon.Glare.Parsing.Parsers;
-using static Aethon.Glare.Parsing.ParserExtensions;
+using static Aethon.Glare.Parsing.ParserCombinators;
 
 namespace Aethon.Glare.Parsing
 {
@@ -23,7 +19,7 @@ namespace Aethon.Glare.Parsing
         [Fact]
         public void ParseAll_WithEmptyInput_DoesNotMatch()
         {
-            GetSubject(Input('a'), Input(':'))
+            GetSubject(Parsers.Input('a'), Parsers.Input(':'))
                 .ParseAll("")
                 .Should().BeEmpty();
         }
@@ -31,7 +27,7 @@ namespace Aethon.Glare.Parsing
         [Fact]
         public void Parse_WithMultipleSeparatedInputs_MatchesAllPrefixes()
         {
-            GetSubject(Match<char>(char.IsLower), Input(':'))
+            GetSubject(Parsers.Match(char.IsLower), Parsers.Input(':'))
                 .Parse("a:b:c").Dump(Out)
                 .Should().BeEquivalentTo(
                     ImmutableList.Create('a'),

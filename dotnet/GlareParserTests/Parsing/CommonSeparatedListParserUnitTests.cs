@@ -2,7 +2,6 @@ using System.Collections.Immutable;
 using FluentAssertions;
 using Xunit;
 using Xunit.Abstractions;
-using static Aethon.Glare.Parsing.Parsers;
 
 namespace Aethon.Glare.Parsing
 {
@@ -17,7 +16,7 @@ namespace Aethon.Glare.Parsing
         [Fact]
         public void ParseAll_WithSingleInput_Matches()
         {
-            GetSubject(Input('a'), Input(':'))
+            GetSubject(Parsers.Input('a'), Parsers.Input(':'))
                 .ParseAll("a").Dump(Out)
                 .Should().BeEquivalentTo(ImmutableList.Create(ImmutableList.Create('a')));
         }
@@ -25,7 +24,7 @@ namespace Aethon.Glare.Parsing
         [Fact]
         public void ParseAll_WithMultipleSeparatedInputs_Matches()
         {
-            GetSubject(Match<char>(char.IsLower), Input(':'))
+            GetSubject(Parsers.Match(char.IsLower), Parsers.Input(':'))
                 .ParseAll("a:b:c").Dump(Out)
                 .Should().BeEquivalentTo(ImmutableList.Create(ImmutableList.Create('a', 'b', 'c')));
         }
@@ -33,7 +32,7 @@ namespace Aethon.Glare.Parsing
         [Fact]
         public void ParseAll_WithLeadingSeparator_DoesNotMatch()
         {
-            GetSubject(Match<char>(char.IsLower), Input(':'))
+            GetSubject(Parsers.Match(char.IsLower), Parsers.Input(':'))
                 .ParseAll(":b:c").Dump(Out)
                 .Should().BeEmpty();
         }
@@ -41,9 +40,11 @@ namespace Aethon.Glare.Parsing
         [Fact]
         public void ParseAll_WithTrailingSeparator_DoesNotMatch()
         {
-            GetSubject(Match<char>(char.IsLower), Input(':'))
+            GetSubject(Parsers.Match(char.IsLower), Parsers.Input(':'))
                 .ParseAll("b:c:").Dump(Out)
                 .Should().BeEmpty();
         }
+        
+        protected static readonly Parsers<char> Parsers = new Parsers<char>();
     }
 }

@@ -1,12 +1,8 @@
 using System;
 using System.Collections.Immutable;
-using System.Linq;
-using System.Reflection.Metadata.Ecma335;
 using FluentAssertions;
 using Xunit;
 using Xunit.Abstractions;
-using static Aethon.Glare.Parsing.Parsers;
-using static Aethon.Glare.Parsing.ParserExtensions;
 
 namespace Aethon.Glare.Parsing
 {
@@ -24,7 +20,7 @@ namespace Aethon.Glare.Parsing
         [Fact]
         public void Start_ResolvesImmediately_AndReturnsOnlyResolvedWork()
         {
-            var subject = Value<char, string>("value");
+            var subject = Parsers.Value("value");
             string result = null;
             var work = subject.Start(r =>
             {
@@ -35,5 +31,7 @@ namespace Aethon.Glare.Parsing
             result.Should().Be("value");
             work.Should().BeEquivalentTo(FullWorkList);
         }
+        
+        private static readonly Parsers<char> Parsers = new Parsers<char>();
     }
 }

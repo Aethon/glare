@@ -1,12 +1,8 @@
-using System;
-using System.Collections.Immutable;
 using System.Linq;
-using System.Reflection.Metadata.Ecma335;
 using FluentAssertions;
 using Xunit;
 using Xunit.Abstractions;
-using static Aethon.Glare.Parsing.Parsers;
-using static Aethon.Glare.Parsing.ParserExtensions;
+using static Aethon.Glare.Parsing.ParserCombinators;
 
 namespace Aethon.Glare.Parsing
 {
@@ -19,7 +15,7 @@ namespace Aethon.Glare.Parsing
         [Fact]
         public void MatchPredicate_WithMatchingStream_Matches()
         {
-            var subject = Match<char>(i => i == 'a');
+            var subject = Parsers.Match(i => i == 'a');
 
             var results = subject.ParseAndDump("a", Out);
 
@@ -29,7 +25,7 @@ namespace Aethon.Glare.Parsing
         [Fact]
         public void MatchPredicate_WithNonMatchingStream_DoesNotMatch()
         {
-            var subject = Match<char>(i => i == 'a');
+            var subject = Parsers.Match(i => i == 'a');
 
             var results = subject.ParseAndDump("b", Out);
 
@@ -39,7 +35,7 @@ namespace Aethon.Glare.Parsing
         [Fact]
         public void Optional_WithMatchingStream_MatchesAndAddsMissingMatch()
         {
-            var subject = Optional(Input('a'));
+            var subject = Optional(Parsers.Input('a'));
 
             var results = subject.ParseAndDump("a", Out);
 
@@ -49,7 +45,7 @@ namespace Aethon.Glare.Parsing
         [Fact]
         public void Optional_WithNonMatchingStream_MatchesWithMissingMatch()
         {
-            var subject = Optional(Input('a'));
+            var subject = Optional(Parsers.Input('a'));
 
             var results = subject.ParseAndDump("b", Out);
 
@@ -59,7 +55,7 @@ namespace Aethon.Glare.Parsing
         [Fact]
         public void A()
         {
-            var subject = OneOrMore(Match<char>(i => i == 'a')).As(c => new string(c.ToArray()));
+            var subject = OneOrMore(Parsers.Match(i => i == 'a')).As(c => new string(c.ToArray()));
 
             var results = subject.ParseAllAndDump("aaa", Out);
 
@@ -69,7 +65,7 @@ namespace Aethon.Glare.Parsing
         [Fact]
         public void B()
         {
-            var subject = Input('a').Then(a => Input('b').Then(b => Input('c').As(c => (a, b, c))));
+            var subject = Parsers.Input('a').Then(a => Parsers.Input('b').Then(b => Parsers.Input('c').As(c => (a, b, c))));
 
             var results = subject.ParseAllAndDump("abc", Out);
 
@@ -112,19 +108,19 @@ namespace Aethon.Glare.Parsing
             // type -> name | oneOrMore | zeroOrMore
             // oneOrMore -> type +
             // zeroOrMore -> type *
-            var oneOrMore = Deferred<char, Type>();
-            var zeroOrMore = Deferred<char, Type>();
-            var name = OneOrMore(Match<char>(char.IsLower)).WithDescription("Name")
+            var oneOrMore = Parsers.Deferred<Type>();
+            var zeroOrMore = Parsers.Deferred<Type>();
+            var name = OneOrMore(Parsers.Match(char.IsLower)).WithDescription("Name")
                 .As(c => (Type) new TypeName(new string(c.ToArray())));
             var type = OneOf(name, oneOrMore, zeroOrMore).WithDescription("Type");
             oneOrMore.Set(
                 from t in type
-                from _ in Input('+')
+                from _ in Parsers.Input('+')
                 select new ListOf(t, false)
             );
             zeroOrMore.Set(
                 from t in type
-                from _ in Input('*')
+                from _ in Parsers.Input('*')
                 select new ListOf(t, true)
             );
 
@@ -134,5 +130,7 @@ namespace Aethon.Glare.Parsing
 
             type.ParseAllAndDump("number+*", Out);
         }
+
+        protected static readonly Parsers<char> Parsers = new Parsers<char>();
     }
 }
