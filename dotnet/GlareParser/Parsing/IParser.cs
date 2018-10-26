@@ -37,7 +37,7 @@ namespace Aethon.Glare.Parsing
     /// <param name="match">Match value</param>
     /// <typeparam name="TInput">Input element type</typeparam>
     /// <typeparam name="TMatch">Parse result type</typeparam>
-    public delegate WorkList<TInput> Resolver<TInput, in TMatch>(TMatch match);
+    public delegate WorkList<TInput> Resolver<TInput, TMatch>(Resolution<TMatch> match);
 
     /// <summary>
     /// Registers a parser to start matching the input stream.

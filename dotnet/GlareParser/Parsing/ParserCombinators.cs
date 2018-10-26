@@ -1,5 +1,8 @@
-﻿using System.Collections.Immutable;
+﻿using System;
+using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Linq;
+using System.Xml.XPath;
 using Aethon.Glare.Util;
 
 namespace Aethon.Glare.Parsing
@@ -17,7 +20,18 @@ namespace Aethon.Glare.Parsing
         /// <typeparam name="TMatch">Parser match type</typeparam>
         /// <returns>The new parser</returns>
         public static BasicParser<TInput, Maybe<TMatch>> Optional<TInput, TMatch>(IParser<TInput, TMatch> parser) =>
-            ParserExtensions.Parser<TInput, Maybe<TMatch>>(resolve => WorkListExtensions.Add(resolve(Maybe<TMatch>.Empty), parser, match => resolve(new Maybe<TMatch>(match))))
+            ParserExtensions.Parser<TInput, Maybe<TMatch>>(resolve => WorkListExtensions.Add(resolve(new Match<Maybe<TMatch>>(Maybe<TMatch>.Empty)), parser, resolution =>
+                {
+                    switch (resolution)
+                    {
+                        case Match<TMatch> match:
+                            return resolve(new Match<Maybe<TMatch>>(new Maybe<TMatch>(match.Value)));
+                        case Failure<TMatch> failure:
+                            return resolve(new Match<Maybe<TMatch>>(Maybe<TMatch>.Empty));
+                        default:
+                            throw new Exception(); // TODO
+                    }
+                }))
                 .WithDescription($"({parser})?");
 
         /// <summary>
@@ -50,7 +64,7 @@ namespace Aethon.Glare.Parsing
         {
             Preconditions.NotNull(item, nameof(item));
             return ParserExtensions.Parser<TInput, ImmutableList<TMatch>>(
-                    resolve => WorkListExtensions.Add(resolve(ImmutableList<TMatch>.Empty), OneOrMore(item), resolve)
+                    resolve => WorkListExtensions.Add(resolve(new Match<ImmutableList<TMatch>>(ImmutableList<TMatch>.Empty)), OneOrMore(item), resolve)
                 )
                 .WithDescription($"({item})*");
         }
@@ -69,10 +83,21 @@ namespace Aethon.Glare.Parsing
                     {
                         WorkList<TInput> MakeWork(ImmutableList<TMatch> results)
                         {
-                            WorkList<TInput> F2(TMatch match)
+                            WorkList<TInput> F2(Resolution<TMatch> resolution)
                             {
-                                var newResults = results.Add(match);
-                                return WorkListExtensions.Add(resolve(newResults), MakeWork(newResults));
+                                switch (resolution)
+                                {
+                                    case Match<TMatch> match:
+                                        var newResults = results.Add(match.Value);
+                                        return WorkListExtensions.Add(
+                                            resolve(new Match<ImmutableList<TMatch>>(newResults)),
+                                            MakeWork(newResults));
+                                    case Failure<TMatch> failure:
+                                        return WorkListExtensions.Add(
+                                            resolve(new Failure<ImmutableList<TMatch>>(failure.Expectation)));
+                                    default:
+                                        throw new Exception(); // TODO
+                                }
                             }
 
                             return WorkListExtensions.Work(item, F2);
@@ -98,7 +123,7 @@ namespace Aethon.Glare.Parsing
         {
             var listParser = NonEmptySeparatedList(item, separator);
             return ParserExtensions.Parser<TInput, ImmutableList<TMatch>>(resolve =>
-                WorkListExtensions.Add(resolve(ImmutableList<TMatch>.Empty), listParser, resolve));
+                WorkListExtensions.Add(resolve(new Match<ImmutableList<TMatch>>(ImmutableList<TMatch>.Empty)), listParser, resolve));
         }
 
         /// <summary>
@@ -120,10 +145,15 @@ namespace Aethon.Glare.Parsing
                     {
                         WorkList<TInput> MakeMatchWork(ImmutableList<TMatch> results)
                         {
-                            WorkList<TInput> Resolve(TMatch match)
+                            WorkList<TInput> Resolve(Resolution<TMatch> resolution)
                             {
-                                var newResults = results.Add(match);
-                                return WorkListExtensions.Add(resolve(newResults), MakeSeparatorWork(newResults));
+                                switch (resolution)
+                                {
+                                    case Match<TMatch> match:
+                                        var newResults = results.Add(match.Value);
+                                        return WorkListExtensions.Add(resolve(new Match<ImmutableList<TMatch>>(newResults)),
+                                            MakeSeparatorWork(newResults));
+                                }
                             }
 
                             return WorkListExtensions.Work(item, Resolve);

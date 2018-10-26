@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Immutable;
 using System.Net;
 using System.Reflection;
 using Aethon.Glare.Scanning;
@@ -12,16 +13,18 @@ namespace Aethon.Glare.Parsing
     /// <summary>
     /// Factories for creating general Glare character parsers.
     /// </summary>
-    public class ScanParsers: Parsers<ScanToken>
+    public abstract class ScanParsers<T>: Parsers<ScanToken>
     {
-        public BasicParser<ScanToken,ScanToken> LeadingTrivia = ZeroOrMore(OneOf(AnySpace, LineComment, BlockComment, Newline));
+        public BasicParser<ScanToken,Token<T>> LeadingTrivia => ZeroOrMore(OneOf(AnySpace, LineComment, BlockComment, Newline));
 
-        public BasicParser<ScanToken, ScanToken> TrailingTrivia = ZeroOrMore(OneOf(AnySpace, LineComment, BlockComment)).Then(triva =>
+        public BasicParser<ScanToken, Token<T>> TrailingTrivia => ZeroOrMore(OneOf(AnySpace.AsList(), LineComment, BlockComment)).Then(triva =>
             Optional(Newline).As(newline => ));
 
-        public BasicParser<ScanToken, ScanToken> LineComment = Mark('/').Then(firstSlash =>
+        public BasicParser<ScanToken, ImmutableList<ScanToken>> LineComment => Mark('/').Then(firstSlash =>
             Mark('/').Then(secondSlash =>
-                ZeroOrMore(OneOf(AnySpace, AnyMark, AnyWord)).As(content => new ScanToken())));
+                ZeroOrMore(OneOf(AnySpace, AnyMark(), AnyWord())).As(content =>
+                    ImmutableList.Create(firstSlash, secondSlash).AddRange(content)
+                )));
         
         /// <summary>
         /// Creates a parser that resolves a match without consuming the input stream.
@@ -94,43 +97,5 @@ namespace Aethon.Glare.Parsing
             return Match(input => input.Type == ScanTokenType.Word && input.Text == value)
                 .WithDescription($"{{keyword({value})}}");
         }
-        
-        /// <summary>
-        /// Creates a parser that matches a single input element based on a predicate.
-        /// </summary>
-        /// <param name="predicate">Predicate to determine if the input element is a match</param>
-        /// <typeparam name="TInput">Input element type</typeparam>
-        /// <returns>The new parser</returns>
-        public BasicParser<TInput, TInput> Match(Predicate<TInput> predicate)
-        {
-            NotNull(predicate, nameof(predicate));
-            return Parser<TInput, TInput>(resolve => Work<TInput>(
-                    input => predicate(input)
-                        ? resolve(input)
-                        : WorkList<TInput>.Nothing
-                ))
-                .WithDescription($"{{Predicate<{typeof(TInput).Name}>}}");
-        }
-
-        /// <summary>
-        /// Creates a parser that matches a single input element exactly.
-        /// </summary>
-        /// <param name="value">Value to match</param>
-        /// <typeparam name="TInput">Input element type</typeparam>
-        /// <returns>The new parser</returns>
-        public BasicParser<TInput, TInput> Input(TInput value)
-        {
-            NotNull(value, nameof(value));
-            return Match(i => value.Equals(i))
-                .WithDescription(value.ToString());
-        }
-                 
-        /// <summary>
-        /// Creates a new <see cref="T:DeferredParser`2"/>.
-        /// </summary>
-        /// <typeparam name="TInput">Input element type</typeparam>
-        /// <typeparam name="TMatch">Parse result type</typeparam>
-        /// <returns>The deferred parser</returns>
-        public DeferredParser<TInput, TMatch> Deferred<TMatch>() => new DeferredParser<TInput, TMatch>();
     }
 }
