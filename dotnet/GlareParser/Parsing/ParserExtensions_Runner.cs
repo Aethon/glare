@@ -48,9 +48,19 @@ namespace Aethon.Glare.Parsing
             using (var enumerator = input.GetEnumerator())
             {
                 var results = new List<TMatch>();
-                
-                var workList = @this.Start(match => {
-                    results.Add(match);
+                var failures = new List<Failure<TMatch>>();
+                var workList = @this.Start(resolution => {
+                    switch (resolution)
+                    {
+                        case Match<TMatch> match:
+                            results.Add(match.Value);
+                            break;
+                        case Failure<TMatch> failure:
+                            failures.Add(failure);
+                            break;
+                        default:
+                            throw new Exception(); // TODO:
+                    }
                     return WorkList<TInput>.Nothing;
                 });
                 
@@ -97,8 +107,19 @@ namespace Aethon.Glare.Parsing
             NotNull(log, nameof(log));
 
             var results = new List<TMatch>();
-            var workList = @this.Start(match => {
-                results.Add(match);
+            var failures = new List<Failure<TMatch>>();
+            var workList = @this.Start(resolution => {
+                switch (resolution)
+                {
+                    case Match<TMatch> match:
+                        results.Add(match.Value);
+                        break;
+                    case Failure<TMatch> failure:
+                        failures.Add(failure);
+                        break;
+                    default:
+                        throw new Exception(); // TODO:
+                }
                 return WorkList<TInput>.Nothing;
             });
             using (var enumerator = input.GetEnumerator())

@@ -2,6 +2,7 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
+using System.Net.Mail;
 using System.Xml.XPath;
 using Aethon.Glare.Util;
 
@@ -153,6 +154,10 @@ namespace Aethon.Glare.Parsing
                                         var newResults = results.Add(match.Value);
                                         return WorkListExtensions.Add(resolve(new Match<ImmutableList<TMatch>>(newResults)),
                                             MakeSeparatorWork(newResults));
+                                    case Failure<TMatch> failure:
+                                        return resolve(new Failure<ImmutableList<TMatch>>(failure.Expectation));
+                                    default:
+                                        throw new Exception(); // TODO
                                 }
                             }
 
@@ -161,7 +166,7 @@ namespace Aethon.Glare.Parsing
 
                         WorkList<TInput> MakeSeparatorWork(ImmutableList<TMatch> results)
                         {
-                            WorkList<TInput> Resolve(TSeparator match) => MakeMatchWork(results);
+                            WorkList<TInput> Resolve(Resolution<TSeparator> match) => MakeMatchWork(results);
                             
                             return WorkListExtensions.Work(separator, Resolve);
                         }

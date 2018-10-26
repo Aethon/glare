@@ -43,7 +43,18 @@ namespace Aethon.Glare.Parsing
         /// <returns></returns>
         public static BasicParser<TInput, TResult> As<TInput, TMatch, TResult>(this IParser<TInput, TMatch> @this,
             Func<TMatch, TResult> transform) =>
-            Parser<TInput, TResult>(@this.ToString(), resolver => Work(@this, match => resolver(transform(match))));
+            Parser<TInput, TResult>(@this.ToString(), resolver => Work(@this, resolution =>
+            {
+                switch (resolution)
+                {
+                    case Match<TMatch> match:
+                        return resolver(new Match<TResult>(transform(match.Value)));
+                    case Failure<TMatch> failure:
+                        return resolver(new Failure<TResult>(failure.Expectation));
+                    default:
+                        throw new Exception(); // TODO
+                }
+            }));
 
         /// <summary>
         /// Creates a new parser that executes this parser and then a second parser
@@ -56,7 +67,17 @@ namespace Aethon.Glare.Parsing
         /// <returns></returns>
         public static BasicParser<TInput, TMatch2> Then<TInput, TMatch1, TMatch2>(this IParser<TInput, TMatch1> @this,
             Func<TMatch1, IParser<TInput, TMatch2>> next) =>
-            Parser<TInput, TMatch2>(resolver => Work(@this, match1 => Work(next(match1), resolver)));
+            Parser<TInput, TMatch2>(resolver => Work(@this, resolution1 =>
+            {
+                switch (resolution1) {
+                    case Match<TMatch1> match:
+                        return Work(next(match.Value), resolver);
+                    case Failure<TMatch1> failure:
+                        return resolver(new Failure<TMatch2>(failure.Expectation));
+                    default:
+                        throw new Exception(); // TODO:
+                }
+            }));
 
         /// <summary>
         /// Binds the output of this parser to another parser and transforms the results of both parsers to
@@ -78,7 +99,29 @@ namespace Aethon.Glare.Parsing
             NotNull(@this, nameof(@this));
             NotNull(next, nameof(next));
             NotNull(resultSelector, nameof(resultSelector));
-            return Parser<TInput, TResult>(resolver => Work(@this, match1 => Work(next(match1), match2 => resolver(resultSelector(match1,  match2)))));
+            return Parser<TInput, TResult>(resolver => Work(@this, resolution1 =>
+            {
+                switch (resolution1)
+                {
+                    case Match<TMatch1> match1:
+                        return Work(next(match1.Value), resolution2 =>
+                        {
+                            switch (resolution2)
+                            {
+                                case Match<TMatch2> match2:
+                                    return resolver(new Match<TResult>(resultSelector(match1.Value, match2.Value)));
+                                case Failure<TMatch2> failure2:
+                                    return resolver(new Failure<TResult>(failure2.Expectation));
+                                default:
+                                    throw new Exception(); // TODO
+                            }
+                        });
+                    case Failure<TMatch1> failure1:
+                        return resolver(new Failure<TResult>(failure1.Expectation));
+                    default:
+                        throw new Exception(); // TODO
+                }
+            }));
         }
     }
 }

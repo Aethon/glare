@@ -116,12 +116,12 @@ namespace Aethon.Glare.Parsing
             oneOrMore.Set(
                 from t in type
                 from _ in Parsers.Input('+')
-                select new ListOf(t, false)
+                select (Type)new ListOf(t, false)
             );
             zeroOrMore.Set(
                 from t in type
                 from _ in Parsers.Input('*')
-                select new ListOf(t, true)
+                select (Type)new ListOf(t, true)
             );
 
             type.ParseAndDump("b", Out);

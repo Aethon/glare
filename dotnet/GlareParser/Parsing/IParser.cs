@@ -7,7 +7,7 @@ namespace Aethon.Glare.Parsing
     /// </summary>
     /// <typeparam name="TInput">Input element type</typeparam>
     /// <typeparam name="TMatch">Parse result type</typeparam>
-    public interface IParser<TInput, out TMatch>
+    public interface IParser<TInput, TMatch>
     {
         /// <summary>
         /// Key to use to identify this parser.
