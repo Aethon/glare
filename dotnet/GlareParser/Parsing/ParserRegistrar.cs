@@ -63,7 +63,7 @@ namespace Aethon.Glare.Parsing
         private sealed class MatchRelay<TMatch> : MatchRelay
         {
             // Invokes all included resolvers and aggregates the resulting work into a work list
-            public WorkList<TInput> Resolve(Resolution<TMatch> match) =>
+            public WorkList<TInput> Resolve(Resolution<TInput, TMatch> match) =>
                 _resolvers.Select(f => f(match)).Aggregate((a, b) => a.Add(b));
 
             // Resolvers to be invoked when the parser matches.

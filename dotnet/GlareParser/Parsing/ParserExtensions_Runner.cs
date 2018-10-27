@@ -48,14 +48,14 @@ namespace Aethon.Glare.Parsing
             using (var enumerator = input.GetEnumerator())
             {
                 var results = new List<TMatch>();
-                var failures = new List<Failure<TMatch>>();
+                var failures = new List<Failure<TInput, TMatch>>();
                 var workList = @this.Start(resolution => {
                     switch (resolution)
                     {
-                        case Match<TMatch> match:
+                        case Match<TInput, TMatch> match:
                             results.Add(match.Value);
                             break;
-                        case Failure<TMatch> failure:
+                        case Failure<TInput, TMatch> failure:
                             failures.Add(failure);
                             break;
                         default:
@@ -64,6 +64,7 @@ namespace Aethon.Glare.Parsing
                     return WorkList<TInput>.Nothing;
                 });
                 
+                var position  = new Position(0);
                 while (true)
                 {
                     foreach (var match in results)
@@ -71,7 +72,8 @@ namespace Aethon.Glare.Parsing
                     results.Clear();
                     if (workList.IsEmpty() || !enumerator.MoveNext())
                         break;
-                    workList = Apply(workList, enumerator.Current, log);
+                    workList = Apply(workList, new InputElement<TInput>(enumerator.Current, position), log);
+                    position += 1;
                 }
             }
         }
@@ -107,14 +109,14 @@ namespace Aethon.Glare.Parsing
             NotNull(log, nameof(log));
 
             var results = new List<TMatch>();
-            var failures = new List<Failure<TMatch>>();
+            var failures = new List<Failure<TInput, TMatch>>();
             var workList = @this.Start(resolution => {
                 switch (resolution)
                 {
-                    case Match<TMatch> match:
+                    case Match<TInput, TMatch> match:
                         results.Add(match.Value);
                         break;
-                    case Failure<TMatch> failure:
+                    case Failure<TInput, TMatch> failure:
                         failures.Add(failure);
                         break;
                     default:
@@ -124,11 +126,13 @@ namespace Aethon.Glare.Parsing
             });
             using (var enumerator = input.GetEnumerator())
             {
+                var position = new Position(0);
                 bool moved;
                 while ((moved = enumerator.MoveNext()) && !workList.IsEmpty())
                 {
                     results.Clear();
-                    workList = Apply(workList, enumerator.Current, log);
+                    workList = Apply(workList, new InputElement<TInput>(enumerator.Current, position), log);
+                    position += 1;
                 }
 
                 return moved
@@ -145,7 +149,7 @@ namespace Aethon.Glare.Parsing
         /// <param name="log"></param>
         /// <typeparam name="TInput"></typeparam>
         /// <returns></returns>
-        private static WorkList<TInput> Apply<TInput>(WorkList<TInput> workList, TInput input, Action<string> log)
+        private static WorkList<TInput> Apply<TInput>(WorkList<TInput> workList, InputElement<TInput> input, Action<string> log)
         {
             log($"Input: '{input}'");
             var (matchers, initialParsers) = workList;

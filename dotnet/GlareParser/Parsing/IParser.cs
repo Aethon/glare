@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using Aethon.Glare.Scanning;
 
 namespace Aethon.Glare.Parsing
 {
@@ -29,7 +30,7 @@ namespace Aethon.Glare.Parsing
     /// </summary>
     /// <param name="input">Input element to examine</param>
     /// <typeparam name="TInput">Input element type</typeparam>
-    public delegate WorkList<TInput> Matcher<TInput>(TInput input);
+    public delegate WorkList<TInput> Matcher<TInput>(InputElement<TInput> input);
 
     /// <summary>
     /// Applies a parser match and returns the resulting <see cref="WorkList{T}"/>
@@ -37,7 +38,7 @@ namespace Aethon.Glare.Parsing
     /// <param name="match">Match value</param>
     /// <typeparam name="TInput">Input element type</typeparam>
     /// <typeparam name="TMatch">Parse result type</typeparam>
-    public delegate WorkList<TInput> Resolver<TInput, TMatch>(Resolution<TMatch> match);
+    public delegate WorkList<TInput> Resolver<TInput, TMatch>(Resolution<TInput, TMatch> match);
 
     /// <summary>
     /// Registers a parser to start matching the input stream.
@@ -45,4 +46,54 @@ namespace Aethon.Glare.Parsing
     /// <param name="registrar">Registration that will accept the registration and start the parser</param>
     /// <typeparam name="TInput">Input element type</typeparam>
     public delegate ImmutableList<RegisterParser<TInput>> RegisterParser<TInput>(IParserRegistrar<TInput> registrar);
+
+    public struct InputElement<T>
+    {
+        public readonly T Value;
+        public readonly Position Position;
+
+        public InputElement(T value, Position position)
+        {
+            Value = value;
+            Position = position;
+        }
+    }
+
+    /// <summary>
+    /// Describes a character position in an input stream.
+    /// </summary>
+    public class Position
+    {
+        /// <summary>
+        /// Zero-based absolute offset (in unicode characters) in the input stream. 
+        /// </summary>
+        public readonly uint Absolute;
+
+        /// <summary>
+        /// Creates a new scan position.
+        /// </summary>
+        /// <param name="absolute">Zero-based absolute offset (in unicode characters) in the input stream. </param>
+        /// <param name="row">Zero-based effective row in the input stream.</param>
+        /// <param name="column">Zero-based effective column in the input stream.</param>
+        public Position(uint absolute)
+        {
+            Absolute = absolute;
+        }
+
+        /// <summary>
+        /// Adds a positive number of characters to the scan position.
+        /// </summary>
+        /// <remarks>
+        /// This operation advances the absolute and column values, but does not affect the row.
+        /// </remarks>
+        /// <param name="position">Original position</param>
+        /// <param name="positions">Number of characters to advance.</param>
+        /// <returns>The new position.</returns>
+        public static Position operator +(Position position, uint positions)
+        {
+            return positions == 0
+                ? position
+                : new Position(position.Absolute + positions);
+        }
+    }
 }

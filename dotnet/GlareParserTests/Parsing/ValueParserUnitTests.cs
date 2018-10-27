@@ -21,14 +21,14 @@ namespace Aethon.Glare.Parsing
         public void Start_ResolvesImmediately_AndReturnsOnlyResolvedWork()
         {
             var subject = Parsers.Value("value");
-            Resolution<string> result = null;
+            Resolution<char, string> result = null;
             var work = subject.Start(r =>
             {
                 result = r;
                 return FullWorkList;
             });
 
-            result.Should().BeEquivalentTo(new Match<string>("value"));
+            result.Should().BeEquivalentTo(new Match<char, string>("value"));
             work.Should().BeEquivalentTo(FullWorkList);
         }
         

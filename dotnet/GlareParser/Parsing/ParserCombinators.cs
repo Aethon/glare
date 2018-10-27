@@ -21,14 +21,14 @@ namespace Aethon.Glare.Parsing
         /// <typeparam name="TMatch">Parser match type</typeparam>
         /// <returns>The new parser</returns>
         public static BasicParser<TInput, Maybe<TMatch>> Optional<TInput, TMatch>(IParser<TInput, TMatch> parser) =>
-            ParserExtensions.Parser<TInput, Maybe<TMatch>>(resolve => WorkListExtensions.Add(resolve(new Match<Maybe<TMatch>>(Maybe<TMatch>.Empty)), parser, resolution =>
+            ParserExtensions.Parser<TInput, Maybe<TMatch>>(resolve => WorkListExtensions.Add(resolve(new Match<TInput, Maybe<TMatch>>(Maybe<TMatch>.Empty)), parser, resolution =>
                 {
                     switch (resolution)
                     {
-                        case Match<TMatch> match:
-                            return resolve(new Match<Maybe<TMatch>>(new Maybe<TMatch>(match.Value)));
-                        case Failure<TMatch> failure:
-                            return resolve(new Match<Maybe<TMatch>>(Maybe<TMatch>.Empty));
+                        case Match<TInput, TMatch> match:
+                            return resolve(new Match<TInput, Maybe<TMatch>>(new Maybe<TMatch>(match.Value)));
+                        case Failure<TInput, TMatch> failure:
+                            return resolve(new Match<TInput, Maybe<TMatch>>(Maybe<TMatch>.Empty));
                         default:
                             throw new Exception(); // TODO
                     }
@@ -65,7 +65,7 @@ namespace Aethon.Glare.Parsing
         {
             Preconditions.NotNull(item, nameof(item));
             return ParserExtensions.Parser<TInput, ImmutableList<TMatch>>(
-                    resolve => WorkListExtensions.Add(resolve(new Match<ImmutableList<TMatch>>(ImmutableList<TMatch>.Empty)), OneOrMore(item), resolve)
+                    resolve => WorkListExtensions.Add(resolve(new Match<TInput, ImmutableList<TMatch>>(ImmutableList<TMatch>.Empty)), OneOrMore(item), resolve)
                 )
                 .WithDescription($"({item})*");
         }
@@ -84,18 +84,18 @@ namespace Aethon.Glare.Parsing
                     {
                         WorkList<TInput> MakeWork(ImmutableList<TMatch> results)
                         {
-                            WorkList<TInput> F2(Resolution<TMatch> resolution)
+                            WorkList<TInput> F2(Resolution<TInput, TMatch> resolution)
                             {
                                 switch (resolution)
                                 {
-                                    case Match<TMatch> match:
+                                    case Match<TInput, TMatch> match:
                                         var newResults = results.Add(match.Value);
                                         return WorkListExtensions.Add(
-                                            resolve(new Match<ImmutableList<TMatch>>(newResults)),
+                                            resolve(new Match<TInput, ImmutableList<TMatch>>(newResults)),
                                             MakeWork(newResults));
-                                    case Failure<TMatch> failure:
+                                    case Failure<TInput, TMatch> failure:
                                         return WorkListExtensions.Add(
-                                            resolve(new Failure<ImmutableList<TMatch>>(failure.Expectation)));
+                                            resolve(failure.As<ImmutableList<TMatch>>()));
                                     default:
                                         throw new Exception(); // TODO
                                 }
@@ -124,7 +124,7 @@ namespace Aethon.Glare.Parsing
         {
             var listParser = NonEmptySeparatedList(item, separator);
             return ParserExtensions.Parser<TInput, ImmutableList<TMatch>>(resolve =>
-                WorkListExtensions.Add(resolve(new Match<ImmutableList<TMatch>>(ImmutableList<TMatch>.Empty)), listParser, resolve));
+                WorkListExtensions.Add(resolve(new Match<TInput, ImmutableList<TMatch>>(ImmutableList<TMatch>.Empty)), listParser, resolve));
         }
 
         /// <summary>
@@ -146,16 +146,16 @@ namespace Aethon.Glare.Parsing
                     {
                         WorkList<TInput> MakeMatchWork(ImmutableList<TMatch> results)
                         {
-                            WorkList<TInput> Resolve(Resolution<TMatch> resolution)
+                            WorkList<TInput> Resolve(Resolution<TInput, TMatch> resolution)
                             {
                                 switch (resolution)
                                 {
-                                    case Match<TMatch> match:
+                                    case Match<TInput, TMatch> match:
                                         var newResults = results.Add(match.Value);
-                                        return WorkListExtensions.Add(resolve(new Match<ImmutableList<TMatch>>(newResults)),
+                                        return WorkListExtensions.Add(resolve(new Match<TInput, ImmutableList<TMatch>>(newResults)),
                                             MakeSeparatorWork(newResults));
-                                    case Failure<TMatch> failure:
-                                        return resolve(new Failure<ImmutableList<TMatch>>(failure.Expectation));
+                                    case Failure<TInput, TMatch> failure:
+                                        return resolve(failure.As<ImmutableList<TMatch>>());
                                     default:
                                         throw new Exception(); // TODO
                                 }
@@ -166,7 +166,7 @@ namespace Aethon.Glare.Parsing
 
                         WorkList<TInput> MakeSeparatorWork(ImmutableList<TMatch> results)
                         {
-                            WorkList<TInput> Resolve(Resolution<TSeparator> match) => MakeMatchWork(results);
+                            WorkList<TInput> Resolve(Resolution<TInput, TSeparator> match) => MakeMatchWork(results);
                             
                             return WorkListExtensions.Work(separator, Resolve);
                         }
@@ -174,6 +174,35 @@ namespace Aethon.Glare.Parsing
                     }
                 )
                 .WithDescription($"({item})+");
+        }
+        
+        public static BasicParser<TInput, TMatch> ErrorUntil<TInput, TMatch>(TInput sentinel, Func<TInput, TMatch> matchSelector)
+        {
+            var terminator = Parsers.Value(sentinel);
+            return ParserExtensions.Parser<TInput, TMatch>(resolve =>
+            {
+                WorkList<TInput> MakeWork(ImmutableList<TInput> erroneousInput)
+                {
+                    WorkList<TInput> F2(Resolution<TInput, TMatch> resolution)
+                    {
+                        switch (resolution)
+                        {
+                            case Match<TInput, TMatch> match:
+                                return WorkListExtensions.Add(
+                                    resolve(new Match<TInput, TMatch>(match.Value,
+                                        ImmutableList.Create<object>(erroneousInput))));
+                            case Failure<TInput, TMatch> failure:
+                                return WorkListExtensions.Add(MakeWork(erroneousInput.Add(failure.Element.Value)));
+                            default:
+                                throw new Exception(); // TODO
+                        }
+                    }
+
+                    return WorkListExtensions.Work(terminator, F2);
+                }
+
+                return MakeWork(ImmutableList<TInput>.Empty);
+            });
         }
     }
 }

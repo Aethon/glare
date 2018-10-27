@@ -21,7 +21,7 @@ namespace Aethon.Glare.Parsing
         public BasicParser<TInput, TValue> Value<TValue>(TValue value)
         {
             NotNull(value, nameof(value));
-            return Parser<TInput, TValue>(resolve => resolve(new Match<TValue>(value)))
+            return Parser<TInput, TValue>(resolve => resolve(new Match<TInput, TValue>(value)))
                 .WithDescription($"{{Predicate<{typeof(TInput).Name}>}}");
         }
 
@@ -35,10 +35,10 @@ namespace Aethon.Glare.Parsing
         {
             NotNull(predicate, nameof(predicate));
             return Parser<TInput, TInput>(resolve => Work<TInput>(
-                    input => predicate(input)
-                        ? resolve(new Match<TInput>(input))
-                        : WorkList<TInput>.Nothing
-                ))
+                    input => predicate(input.Value)
+                        ? resolve(new Match<TInput, TInput>(input.Value))
+                        : resolve(new Failure<TInput, TInput>($"a match", input)
+                )))
                 .WithDescription($"{{Predicate<{typeof(TInput).Name}>}}");
         }
 
@@ -54,7 +54,7 @@ namespace Aethon.Glare.Parsing
             return Match(i => value.Equals(i))
                 .WithDescription(value.ToString());
         }
-                 
+
         /// <summary>
         /// Creates a new <see cref="T:DeferredParser`2"/>.
         /// </summary>

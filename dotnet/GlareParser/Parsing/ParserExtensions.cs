@@ -47,10 +47,10 @@ namespace Aethon.Glare.Parsing
             {
                 switch (resolution)
                 {
-                    case Match<TMatch> match:
-                        return resolver(new Match<TResult>(transform(match.Value)));
-                    case Failure<TMatch> failure:
-                        return resolver(new Failure<TResult>(failure.Expectation));
+                    case Match<TInput, TMatch> match:
+                        return resolver(new Match<TInput,TResult>(transform(match.Value)));
+                    case Failure<TInput, TMatch> failure:
+                        return resolver(failure.As<TResult>());
                     default:
                         throw new Exception(); // TODO
                 }
@@ -70,10 +70,10 @@ namespace Aethon.Glare.Parsing
             Parser<TInput, TMatch2>(resolver => Work(@this, resolution1 =>
             {
                 switch (resolution1) {
-                    case Match<TMatch1> match:
+                    case Match<TInput, TMatch1> match:
                         return Work(next(match.Value), resolver);
-                    case Failure<TMatch1> failure:
-                        return resolver(new Failure<TMatch2>(failure.Expectation));
+                    case Failure<TInput, TMatch1> failure:
+                        return resolver(failure.As<TMatch2>());
                     default:
                         throw new Exception(); // TODO:
                 }
@@ -103,21 +103,21 @@ namespace Aethon.Glare.Parsing
             {
                 switch (resolution1)
                 {
-                    case Match<TMatch1> match1:
+                    case Match<TInput, TMatch1> match1:
                         return Work(next(match1.Value), resolution2 =>
                         {
                             switch (resolution2)
                             {
-                                case Match<TMatch2> match2:
-                                    return resolver(new Match<TResult>(resultSelector(match1.Value, match2.Value)));
-                                case Failure<TMatch2> failure2:
-                                    return resolver(new Failure<TResult>(failure2.Expectation));
+                                case Match<TInput, TMatch2> match2:
+                                    return resolver(new Match<TInput, TResult>(resultSelector(match1.Value, match2.Value)));
+                                case Failure<TInput, TMatch2> failure2:
+                                    return resolver(failure2.As<TResult>());
                                 default:
                                     throw new Exception(); // TODO
                             }
                         });
-                    case Failure<TMatch1> failure1:
-                        return resolver(new Failure<TResult>(failure1.Expectation));
+                    case Failure<TInput, TMatch1> failure1:
+                        return resolver(failure1.As<TResult>());
                     default:
                         throw new Exception(); // TODO
                 }
