@@ -42,10 +42,10 @@ namespace Aethon.Glare.Parsing
     
     public interface IParser<TInput, TMatch> : IParser<TInput>
     {
-        ParseResult<TInput, TMatch> Resolve(Input<TInput> input);
+        Task<ParseResult<TInput, TMatch>> Resolve(Input<TInput> input);
     }
 
-    public delegate ParseResult<TInput, TMatch> ParseMethod<TInput, TMatch>(Input<TInput> input);
+    public delegate Task<ParseResult<TInput, TMatch>> ParseMethod<TInput, TMatch>(Input<TInput> input);
     
 //    /// <summary>
 //    /// Tests an input element and returns the resulting <see cref="WorkList{T}"/>

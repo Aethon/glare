@@ -36,10 +36,17 @@ namespace Aethon.Glare.Parsing
         /// <inheritdoc/>
         public Task<ParseResult<TInput, TMatch>> Resolve<TMatch>(IParser<TInput, TMatch> parser, Input<TInput> input)
         {
-            var taskFactory = Task.Factory; // TODO: configure
-            return (Task<ParseResult<TInput, TMatch>>)_relays.GetOrAdd(new Key(input, parser), key => taskFactory.StartNew(() => parser.Resolve(input)));
+            return (Task<ParseResult<TInput, TMatch>>)_relays.GetOrAdd(new Key(input, parser), key =>
+                Start(parser, input)
+            );
         }
 
+        private async Task<ParseResult<TInput, TMatch>> Start<TMatch>(IParser<TInput, TMatch> parser, Input<TInput> input)
+        {
+            var taskFactory = Task.Factory; // TODO: configure            
+            return await await taskFactory.StartNew(() => parser.Resolve(input));
+        }
+        
         private struct Key
         {
             public readonly Input<TInput> Input;

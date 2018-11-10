@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using Xunit;
 using Xunit.Abstractions;
+using static Aethon.Glare.Parsing.ParseStuff;
 
 namespace Aethon.Glare.Parsing
 {
@@ -16,25 +17,23 @@ namespace Aethon.Glare.Parsing
         [Fact]
         public async Task Resolve_WithElement_ReturnsMatchedValueWithoutConsuming()
         {
+            var input = new Element<char>('c', () => throw new Exception("should not call"), new Packrat<char>());
             var subject = Parsers.Return('a');
 
-            var input = new Element<char>('c', () => throw new Exception("should not call"));
+            var result = await subject.Resolve(input);
 
-            var result = subject.Resolve(input);
-
-            result.Should().BeEquivalentTo(new ParseMatch<char, char>(ImmutableList.Create(new Match<char, char>('a', input))));
+            result.Should().BeEquivalentTo(SingleMatch('a', input));
         }
         
         [Fact]
         public async Task Resolve_WithEnd_ReturnsMatchedValueWithoutConsuming()
         {
+            var input = new End<char>(new Packrat<char>());
             var subject = Parsers.Return('e');
 
-            var input = new End<char>();
+            var result = await subject.Resolve(input);
 
-            var result = subject.Resolve(input);
-
-            result.Should().BeEquivalentTo(new ParseMatch<char, char>(ImmutableList.Create(new Match<char, char>('e', input))));
+            result.Should().BeEquivalentTo(SingleMatch('e', input));
         }
         
         private static readonly Parsers<char> Parsers = new Parsers<char>();

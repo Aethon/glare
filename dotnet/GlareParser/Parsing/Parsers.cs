@@ -22,7 +22,7 @@ namespace Aethon.Glare.Parsing
         public BasicParser<TInput, TValue> Return<TValue>(TValue value)
         {
             NotNull(value, nameof(value));
-            return Parser<TInput, TValue>(input => ParseMatch(value, input))
+            return Parser<TInput, TValue>(input => Task.FromResult(ParseMatch(value, input)))
                 .WithDescription($"{{Return({value})}}");
         }
 //

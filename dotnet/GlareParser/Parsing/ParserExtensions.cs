@@ -1,4 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Data;
+using System.Linq;
+using System.Net.Http.Headers;
+using System.Text;
 using System.Threading.Tasks;
 using static Aethon.Glare.Util.Preconditions;
 
@@ -19,7 +25,6 @@ namespace Aethon.Glare.Parsing
 //        public static BasicParser<TInput, TMatch> Parser<TInput, TMatch>(
 //            Func<Resolver<TInput, TMatch>, WorkList<TInput>> start) =>
 //            new BasicParser<TInput, TMatch>("{parser}", start);
-
         public static BasicParser<TInput, TMatch> Parser<TInput, TMatch>(
             ParseMethod<TInput, TMatch> resolver)
         {
@@ -76,20 +81,19 @@ namespace Aethon.Glare.Parsing
             Func<TMatch1, IParser<TInput, TMatch2>> next) =>
             Parser<TInput, TMatch2>(async input =>
             {
-                (await input.Resolve(@this)).(
-                    match =>
-                    {
-                        match.
-                    }
-                switch (resolution1) {
+                switch (await input.Resolve(@this))
+                {
                     case Match<TInput, TMatch1> match:
-                        return Work(next(match.Value), resolver);
-                    case Failure<TInput, TMatch1> failure:
-                        return resolver(failure.As<TMatch2>());
+                        return (await Task.WhenAll(match.Alternatives.Select(alt =>
+                                alt.RemainingInput.Resolve(next(alt.Value)))))
+                            .Aggregate((a, r) => a.And(r));
+                    case Nothing<TInput, TMatch1> nothing:
+                        return nothing.As<TMatch2>();
                     default:
-                        throw new Exception(); // TODO:
+                        throw new Exception();
                 }
-            }));
+            });
+
 //
 //        /// <summary>
 //        /// Binds the output of this parser to another parser and transforms the results of both parsers to

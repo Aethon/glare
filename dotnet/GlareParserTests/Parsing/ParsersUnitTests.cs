@@ -1,8 +1,12 @@
+using System;
+using System.Collections.Immutable;
 using System.Linq;
+using System.Threading.Tasks;
 using FluentAssertions;
 using Xunit;
 using Xunit.Abstractions;
-using static Aethon.Glare.Parsing.ParserCombinators;
+using static Aethon.Glare.Parsing.ParseStuff;
+//using static Aethon.Glare.Parsing.ParserCombinators;
 
 namespace Aethon.Glare.Parsing
 {
@@ -62,15 +66,36 @@ namespace Aethon.Glare.Parsing
 //            results.Should().BeEquivalentTo("aaa");
 //        }
 //
+//        [Fact]
+//        public void B()
+//        {
+//            var input = new End<char>(new Packrat<char>());
+//
+//            var subject = Parsers.Return('a').Then(a => 
+//                Parsers.Return('b').Then<char,char,char>(b => 
+//                    Parsers.Return('c').Then(c => 
+//                        Parsers.Return((a, b, c)))));
+//
+//            var results = subject.Resolve(input);
+//
+//            results.Should().BeEquivalentTo(('a', 'b', 'c'));
+//        }
+
         [Fact]
-        public void B()
+        public async Task C()
         {
-            var subject = Parsers.Return('a').Then(a => Parsers.Return('b').Then(b => Parsers.Return('c').As(c => (a, b, c))));
+            var input = new End<char>(new Packrat<char>());
+            var subject = Parsers.Return('a').Then(a =>
+                Parsers.Return('b').Then(b => 
+                    Parsers.Return('c').Then(c => 
+                        Parsers.Return((a, b, c)))));
 
-            var results = subject.ParseAllAndDump("abc", Out);
-
-            results.Should().BeEquivalentTo(('a', 'b', 'c'));
+            var result = await subject.Resolve(input);
+            
+            var expectation = SingleMatch(('a', 'b', 'c'), input);
+            result.Should().BeEquivalentTo(expectation, options => options.RespectingRuntimeTypes());
         }
+
 //
 //        private abstract class Type
 //        {

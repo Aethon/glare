@@ -25,7 +25,7 @@ namespace Aethon.Glare.Parsing
         public object Key => this;
         
 //        /// <inheritdoc/>
-        public ParseResult<TInput, TMatch> Resolve(Input<TInput> input) => _method(input);
+        public Task<ParseResult<TInput, TMatch>> Resolve(Input<TInput> input) => _method(input);
 
         /// <summary>
         /// Creates a new parser from this parser with a new description.
