@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 
 namespace Aethon.Glare.Parsing
 {
@@ -13,7 +14,7 @@ namespace Aethon.Glare.Parsing
         /// <summary>
         /// Function to create the work list to start the parser.
         /// </summary>
-        private readonly Func<Resolver<TInput, TMatch>, WorkList<TInput>> _start;
+        private readonly ParseMethod<TInput, TMatch> _method;
         
         /// <summary>
         /// Description of the parser.
@@ -21,10 +22,10 @@ namespace Aethon.Glare.Parsing
         private readonly string _description;
 
         /// <inheritdoc/>
-        public object Key => _start; // use the start function as the key for the parser
+        public object Key => this;
         
-        /// <inheritdoc/>
-        public WorkList<TInput> Start(Resolver<TInput, TMatch> resolver) => _start(resolver);
+//        /// <inheritdoc/>
+        public ParseResult<TInput, TMatch> Resolve(Input<TInput> input) => _method(input);
 
         /// <summary>
         /// Creates a new parser from this parser with a new description.
@@ -32,7 +33,7 @@ namespace Aethon.Glare.Parsing
         /// <param name="description">Description of the parser</param>
         /// <returns>The new parser</returns>
         public BasicParser<TInput, TMatch> WithDescription(string description) =>
-            new BasicParser<TInput, TMatch>(description, _start);
+            new BasicParser<TInput, TMatch>(description, _method);
 
         /// <inheritdoc/>
         public override string ToString() => _description;
@@ -42,9 +43,9 @@ namespace Aethon.Glare.Parsing
         /// </summary>
         /// <param name="description">Description of the parser</param>
         /// <param name="start">Function to create the work list to start the parser</param>
-        public BasicParser(string description, Func<Resolver<TInput, TMatch>, WorkList<TInput>> start)
+        public BasicParser(string description, ParseMethod<TInput, TMatch> method)
         {
-            _start = start;
+            _method = method;
             _description = description;
         }
     }

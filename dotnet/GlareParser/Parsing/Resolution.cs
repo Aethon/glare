@@ -1,4 +1,4 @@
-using System.Collections.Immutable;
+using System;
 
 namespace Aethon.Glare.Parsing
 {
@@ -8,7 +8,11 @@ namespace Aethon.Glare.Parsing
     /// <typeparam name="TMatch">Parser match type</typeparam>
     public abstract class Resolution<TInput, TMatch>
     {
-        
+        public abstract TResult Select<TResult>(Func<TMatch, Input<TInput>, TResult> match = null,
+            Func<int, string, TResult> failure = null, Func<TResult> nothing = null);
+
+        public abstract void Apply(Action<TMatch, Input<TInput>> match = null,
+            Action<int, string> failure = null, Action nothing = null);
     }
 
     /// <summary>
@@ -20,68 +24,40 @@ namespace Aethon.Glare.Parsing
         /// <summary>
         /// Matched value
         /// </summary>
-        public readonly ImmutableList<object> Errors;
-
-        /// <summary>
-        /// Matched value
-        /// </summary>
         public readonly TMatch Value;
-        
-        /// <summary>
-        /// Leading trivia matched
-        /// </summary>
-        public readonly object LeadingTrivia;
-        
-        /// <summary>
-        /// Trailing trivia matched
-        /// </summary>
-        public readonly object TrailingTrivia;
+
+        public readonly Input<TInput> RemainingInput;
 
         /// <summary>
         /// Creates a new Match with no trivia
         /// </summary>
         /// <param name="value">Matched value</param>
-        public Match(TMatch value)
+        public Match(TMatch value, Input<TInput> remainingInput)
         {
             Value = value;
+            RemainingInput = remainingInput;
         }
 
-        /// <summary>
-        /// Creates a new Match
-        /// </summary>
-        /// <param name="value">Matched value</param>
-        /// <param name="leadingTrivia">Matched leading trivia</param>
-        /// <param name="trailingTrivia">Matched trailing trivia</param>
-        public Match(TMatch value, ImmutableList<object> errors)
-        {
-            Value = value;
-            Errors = errors;
-        }
-        
-//        /// <summary>
-//        /// Creates a new Match
-//        /// </summary>
-//        /// <param name="value">Matched value</param>
-//        /// <param name="leadingTrivia">Matched leading trivia</param>
-//        /// <param name="trailingTrivia">Matched trailing trivia</param>
-//        public Match(TMatch value, object leadingTrivia, object trailingTrivia)
-//        {
-//            Value = value;
-//            LeadingTrivia = leadingTrivia;
-//            TrailingTrivia = trailingTrivia;
-//        }
+        public override TResult Select<TResult>(Func<TMatch, Input<TInput>, TResult> match = null,
+            Func<int, string, TResult> failure = null, Func<TResult> nothing = null) =>
+            match == null
+                ? default
+                : match(Value, RemainingInput);
+
+        public override void Apply(Action<TMatch, Input<TInput>> match = null,
+            Action<int, string> failure = null, Action nothing = null) => match?.Invoke(Value, RemainingInput);
     }
 
     /// <summary>
     /// Represents a failed parse match
     /// </summary>
     /// <typeparam name="TMatch">Parser match type</typeparam>
-    public sealed class Failure<TInput, TMatch> : Resolution<TInput, TMatch>
+    public sealed class Nothing<TInput, TMatch> : Resolution<TInput, TMatch>
     {
         /// <summary>
         /// Actual value matched
         /// </summary>
-        public readonly InputElement<TInput> Element;
+        public readonly int Position;
 
         /// <summary>
         /// Description of the expected match
@@ -92,13 +68,22 @@ namespace Aethon.Glare.Parsing
         /// Creates a new Failure
         /// </summary>
         /// <param name="expectation">Description of the expected match</param>
-        public Failure(string expectation, InputElement<TInput> element)
+        public Nothing(string expectation, int position)
         {
             Expectation = expectation;
-            Element = element;
+            Position = position;
         }
 
-        public Failure<TInput, TMatch2> As<TMatch2>() =>
-            new Failure<TInput, TMatch2>(Expectation, Element);
+        public Nothing<TInput, TMatch2> As<TMatch2>() =>
+            new Nothing<TInput, TMatch2>(Expectation, Position);
+
+        public override TResult Select<TResult>(Func<TMatch, Input<TInput>, TResult> match = null,
+            Func<int, string, TResult> failure = null, Func<TResult> nothing = null) =>
+            failure == null
+                ? default
+                : failure(Position, Expectation);
+
+        public override void Apply(Action<TMatch, Input<TInput>> match = null,
+            Action<int, string> failure = null, Action nothing = null) => failure?.Invoke(Position, Expectation);
     }
 }

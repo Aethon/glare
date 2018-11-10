@@ -1,0 +1,14 @@
+/local-repos/glare-repo/glare/dotnet/Scratch/bin/Debug/netcoreapp2.1/xunit.runner.visualstudio.dotnetcore.testadapter.dll
+/local-repos/glare-repo/glare/dotnet/Scratch/bin/Debug/netcoreapp2.1/xunit.runner.reporters.netcoreapp10.dll
+/local-repos/glare-repo/glare/dotnet/Scratch/bin/Debug/netcoreapp2.1/xunit.runner.utility.netcoreapp10.dll
+/local-repos/glare-repo/glare/dotnet/Scratch/bin/Debug/netcoreapp2.1/Scratch.deps.json
+/local-repos/glare-repo/glare/dotnet/Scratch/bin/Debug/netcoreapp2.1/Scratch.runtimeconfig.json
+/local-repos/glare-repo/glare/dotnet/Scratch/bin/Debug/netcoreapp2.1/Scratch.runtimeconfig.dev.json
+/local-repos/glare-repo/glare/dotnet/Scratch/bin/Debug/netcoreapp2.1/Scratch.dll
+/local-repos/glare-repo/glare/dotnet/Scratch/bin/Debug/netcoreapp2.1/Scratch.pdb
+/local-repos/glare-repo/glare/dotnet/Scratch/obj/Debug/netcoreapp2.1/Scratch.csprojAssemblyReference.cache
+/local-repos/glare-repo/glare/dotnet/Scratch/obj/Debug/netcoreapp2.1/Scratch.csproj.CoreCompileInputs.cache
+/local-repos/glare-repo/glare/dotnet/Scratch/obj/Debug/netcoreapp2.1/Scratch.AssemblyInfoInputs.cache
+/local-repos/glare-repo/glare/dotnet/Scratch/obj/Debug/netcoreapp2.1/Scratch.AssemblyInfo.cs
+/local-repos/glare-repo/glare/dotnet/Scratch/obj/Debug/netcoreapp2.1/Scratch.dll
+/local-repos/glare-repo/glare/dotnet/Scratch/obj/Debug/netcoreapp2.1/Scratch.pdb
