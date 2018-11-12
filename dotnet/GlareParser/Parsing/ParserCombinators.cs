@@ -1,25 +1,25 @@
-﻿//using System;
-//using System.Collections.Generic;
-//using System.Collections.Immutable;
-//using System.Diagnostics;
-//using System.Linq;
-//using System.Net.Http.Headers;
-//using System.Net.Mail;
-//using System.Runtime.CompilerServices;
-//using System.Threading.Tasks;
-//using System.Xml.XPath;
-//using Aethon.Glare.Util;
-//using static Aethon.Glare.Parsing.ParseResults;
-//
-//namespace Aethon.Glare.Parsing
-//{
-//    public delegate Task<bool> PF<TInput, TMatch>(Input<TInput> input, Func<TMatch, Input<TInput>> continuation);
-//
-//    /// <summary>
-//    /// Factories for creating general Glare parsers.
-//    /// </summary>
-//    public static class ParserCombinators<TInput>
-//    {
+﻿using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Diagnostics;
+using System.Linq;
+using System.Net.Http.Headers;
+using System.Net.Mail;
+using System.Runtime.CompilerServices;
+using System.Security.Cryptography;
+using System.Threading.Tasks;
+using System.Xml.XPath;
+using Aethon.Glare.Util;
+using static Aethon.Glare.Parsing.ParserExtensions;
+using static Aethon.Glare.Parsing.ParseStuff;
+
+namespace Aethon.Glare.Parsing
+{
+    /// <summary>
+    /// Factories for creating general Glare parsers.
+    /// </summary>
+    public static class ParserCombinators
+    {
 //        /// <summary>
 //        /// Creates a parser that applies another parser and also matches nothing.
 //        /// </summary>
@@ -27,19 +27,14 @@
 //        /// <typeparam name="TInput">Input element type</typeparam>
 //        /// <typeparam name="TMatch">Parser match type</typeparam>
 //        /// <returns>The new parser</returns>
-//        public static BasicParser<TInput, Maybe<TMatch>> Optional<TMatch>(IParser<TInput, TMatch> parser) =>
-//            ParserExtensions.Parser<TInput, Maybe<TMatch>>(async (input, continuation) =>
-//                    {
-//                        await input.Select(
-//                            element => parser.Resolve(element, continuation)
-//                        );
-//
-//                        // always match empty
-//                        await continuation(Maybe<TMatch>.Empty, input);
-//                    }
-//                )
-//                .WithDescription($"({parser})?");
-//
+        public static BasicParser<E, Maybe<M>> Optional<E, M>(IParser<E, M> parser)
+        {
+            var innerParser = parser.Bind(r => Parsers<E>.Return(new Maybe<M>(r)));
+            return Parser<E, Maybe<M>>(async input => SingleMatch(Maybe<M>.Empty, input)
+                    .And(await input.Resolve(innerParser)))
+                .WithDescription($"({parser})?");
+        }
+
 //        /// <summary>
 //        /// Creates a parser that starts many parsers in parallel.
 //        /// </summary>
@@ -47,15 +42,15 @@
 //        /// <typeparam name="TInput">Input element type</typeparam>
 //        /// <typeparam name="TMatch">Parser match type</typeparam>
 //        /// <returns>The new parser</returns>
-//        public static BasicParser<TInput, TMatch> OneOf<TMatch>(params IParser<TInput, TMatch>[] options)
-//        {
-//            Preconditions.NotNullOrEmpty(options, nameof(options));
-//            return ParserExtensions.Parser<TInput, TMatch>(
-//                    async (input, continuation) =>
-//                        (await Task.WhenAll(options.Select(opt => input.Resolve(opt, continuation)))).Any(r => r)
-//                )
-//                .WithDescription($"({string.Join<IParser<TInput, TMatch>>(" | ", options)})");
-//        }
+        public static BasicParser<E, M> OneOf<E, M>(params IParser<E, M>[] options)
+        {
+            Preconditions.NotNullOrEmpty(options, nameof(options));
+            return Parser<E, M>(
+                    async input =>
+                        (await Task.WhenAll(options.Select(input.Resolve))).Aggregate((a,m) => a.And(m))
+                )
+                .WithDescription($"({string.Join<IParser<E, M>>(" | ", options)})");
+        }
 //
 //        /// <summary>
 //        /// Creates a parser that starts a parser repeatedly, zero or more times.
@@ -85,31 +80,36 @@
 //        /// <typeparam name="TInput">Input element type</typeparam>
 //        /// <typeparam name="TMatch">Parser match type</typeparam>
 //        /// <returns>The new parser</returns>
-//        public static BasicParser<TInput, ImmutableList<TMatch>> OneOrMore<TInput, TMatch>(IParser<TInput, TMatch> item)
-//        {
-//            Preconditions.NotNull(item, nameof(item));
-//            return ParserExtensions.Parser<TInput, ImmutableList<TMatch>>(async (input, continuation) =>
-//                    {
-//                        var res = new ImmutableList.Create<TMatch>();
-//                        var done = false;
-//                        while (!done)
-//                        {
-//                            var result = await input.Resolve(item);
-//                            result.Apply(
-//                                match: (value, remainingInput) =>
-//                                {
-//                                    continuation(res = res.Add(value));
-//                                    input = remainingInput;
-//                                },
-//                                failure: _ => done = true
-//                            );
-//                        }
-//
-//                        return res.Count > 0;
-//                    }
-//                )
-//                .WithDescription($"({item})+");
-//        }
+        public static BasicParser<E, ImmutableList<M>> OneOrMore<E, M>(IParser<E, M> item)
+        {
+            Preconditions.NotNull(item, nameof(item));
+            return List(item, ImmutableList<M>.Empty);
+        }
+
+        private static BasicParser<E, ImmutableList<M>> List<E, M>(IParser<E, M> item,
+            ImmutableList<M> previous)
+        {
+            return Parser<E, ImmutableList<M>>(async input =>
+                    {
+                        var result = await input.Resolve(item);
+                        switch (result)
+                        {
+                            case Match<E, M> match:
+                                var newAlts = match.Alternatives
+                                    .Select(a => Alt(previous.Add(a.Value), a.RemainingInput)).ToImmutableHashSet();
+                                var newTasks = newAlts.Select(a => a.RemainingInput.Resolve(List(item, a.Value)));
+                                var additionalResults = await Task.WhenAll(newTasks);
+                                return additionalResults.Aggregate(Matches(newAlts), (a, m) => a.And(m));
+                            case Nothing<E, M> nothing:
+                                return nothing.As<ImmutableList<M>>();
+                            default:
+                                throw new Exception(); // TODO:
+                        }
+                    }
+                )
+                .WithDescription($"({item})+");
+        }
+
 //
 //        /// <summary>
 //        /// Creates a parser that matches one or more items interspersed with a separator.
@@ -219,5 +219,5 @@
 //        private static Task<Resolution<TInput, TMatch>>
 //            ReturnFailure<TMatch>(string expectation, Input<TInput> input) =>
 //            Task.FromResult((Resolution<TInput, TMatch>) new Failure<TInput, TMatch>(expectation, input));
-//    }
-//}
+    }
+}

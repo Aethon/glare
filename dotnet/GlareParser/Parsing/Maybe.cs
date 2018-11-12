@@ -1,21 +1,27 @@
 using System;
+using System.Collections.Generic;
 using static Aethon.Glare.Util.Preconditions;
 
 namespace Aethon.Glare.Parsing
 {
+    public struct NoValue
+    {
+        public static readonly NoValue Instance = new NoValue();
+    }
+    
     /// <summary>
     /// Weak implementation of an optional value; to be improved
     /// </summary>
     /// <typeparam name="T">Contained value type</typeparam>
-    public struct Maybe<T>
+    public struct Maybe<T> : IEquatable<Maybe<T>>
     {
         /// <summary>
         /// A Maybe with no value.
         /// </summary>
         public static readonly Maybe<T> Empty = new Maybe<T>();
-        
+
         private readonly T _value;
-        
+
         /// <summary>
         /// Indicates whether the Maybe contains a value.
         /// </summary>
@@ -46,6 +52,25 @@ namespace Aethon.Glare.Parsing
         {
             HasValue = true;
             _value = NotNull(value, nameof(value));
+        }
+
+        public override string ToString() => HasValue
+            ? $"Value[{_value}]"
+            : "Empty";
+
+        public bool Equals(Maybe<T> other)
+        {
+            return EqualityComparer<T>.Default.Equals(_value, other._value) && HasValue == other.HasValue;
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj is Maybe<T> other && Equals(other);
+        }
+
+        public override int GetHashCode()
+        {
+            return EqualityComparer<T>.Default.GetHashCode(_value);
         }
     }
 }

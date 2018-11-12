@@ -1,128 +1,129 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Security.Cryptography.X509Certificates;
+using System.Collections.Immutable;
 using System.Threading.Tasks;
-using Aethon.Glare.Scanning;
+using Aethon.Glare.Util;
+using static Aethon.Glare.Util.Preconditions;
 
 namespace Aethon.Glare.Parsing
-{    
-    public interface IInputSource<T> //: IDisposable
+{
+    public sealed class InputSource<E>
     {
-        Input<T> Start();
-    }
-    
-    public sealed class GenericInputSource<T> : IInputSource<T>
-    {
-        private readonly IEnumerable<T> _input;
-        private readonly IPackrat<T> _packrat;
+        public int ElementCount => _sourceElements.Count;
 
-        public GenericInputSource(IEnumerable<T> input, IPackrat<T> packrat)
+        private readonly ImmutableList<E> _sourceElements;
+
+        public InputSource(ImmutableList<E> sourceElements)
         {
-            _input = input;
-            _packrat = packrat;
+            _sourceElements = NotNull(sourceElements, nameof(sourceElements));
         }
 
-        public Input<T> Start()
-        {
-            var enumerator = _input.GetEnumerator();
-            return GetInput(enumerator);
-        }
+        public E this[int index] => _sourceElements[index];
 
-        private Input<T> GetInput(IEnumerator<T> enumerator)
-        {
-            if (enumerator.MoveNext())
-            {
-                return new Element<T>(enumerator.Current, () => GetInput(enumerator), _packrat);
-            }
-
-            return new End<T>(_packrat);
-        }
+        public override string ToString() => $"InputSource<{typeof(E).Name}>[{_sourceElements.Count} elements]";
     }
 
-    public abstract class Input<T>
-    {
-        private readonly IPackrat<T> _packrat;
 
-        protected Input(IPackrat<T> packrat)
+    public sealed class ParsingContext<E>
+    {
+        private readonly InputSource<E> _source;
+        private readonly IPackrat<E> _packrat;
+
+        public ParsingContext(InputSource<E> source, IPackrat<E> packrat)
         {
-            _packrat = packrat;
+            _source = NotNull(source, nameof(source));
+            _packrat = NotNull(packrat, nameof(packrat));
         }
 
-        public Task<ParseResult<T, TMatch>> Resolve<TMatch>(IParser<T, TMatch> parser) =>
-            _packrat.Resolve(parser, this);
-        
-        public abstract TResult Select<TResult>(Func<Element<T>, TResult> element = null,
-            Func<End<T>, TResult> end = null);
+        public Task<ParseResult<E, M>> Resolve<M>(IParser<E, M> parser, Input<E> input) =>
+            _packrat.Resolve(parser, input);
+
+        public Input<E> Start => GetElement(0);
+        public Input<E> End => new End<E>(_source.ElementCount, this);
+
+        public Input<E> GetElement(int position) =>
+            _source.ElementCount > position
+                ? new Element<E>(position, this)
+                : End;
+
+        public E GetElementValue(int position) => _source[position];
+
+        public override string ToString() => $"ParsingContext[source: {_source}, packrat: {_packrat}]";
     }
 
-    public sealed class End<T>: Input<T>
-    {
-        public End(IPackrat<T> packrat) : base(packrat)
-        {
-        }
 
-        public override TResult Select<TResult>(Func<Element<T>, TResult> element = null,
-            Func<End<T>, TResult> end = null) => end == null ? default : end(this);
+    public static class ParsingContext
+    {
+        public static ParsingContext<char> Create(string source) =>
+            new ParsingContext<char>(new InputSource<char>(ImmutableList.CreateRange(source)), new Packrat<char>());
     }
-    
-    public sealed class Element<T> : Input<T>
+
+    public abstract class Input<E> : IEquatable<Input<E>>
     {
-        private readonly Lazy<Input<T>> _nextFactory;
+        public readonly int Position;
 
-        public Input<T> Next => _nextFactory.Value;
+        protected readonly ParsingContext<E> Context;
 
-        public T Value { get; }
-
-
-        public Element(T value, Func<Input<T>> nextFactory, IPackrat<T> packrat) : base(packrat)
+        protected Input(int position, ParsingContext<E> context)
         {
-//            _source = source;
-            _nextFactory = new Lazy<Input<T>>(nextFactory);
-            Value = value;
+            Position = position;
+            Context = context;
         }
-        
-        public override TResult Select<TResult>(Func<Element<T>, TResult> element = null,
-            Func<End<T>, TResult> end = null) => element == null ? default : element(this);
+
+        public Task<ParseResult<E, TMatch>> Resolve<TMatch>(IParser<E, TMatch> parser) =>
+            Context.Resolve(parser, this);
+
+        public abstract T Select<T>(Func<Element<E>, T> element = null, Func<End<E>, T> end = null);
+
+        public bool Equals(Input<E> other)
+        {
+            if (ReferenceEquals(null, other)) return false;
+            if (ReferenceEquals(this, other)) return true;
+            if (GetType() != other.GetType()) return false;
+            return Position == other.Position && ReferenceEquals(Context, other.Context);
+        }
+
+        public override bool Equals(object obj) =>
+            (obj is Input<E> other) && Equals(other);
+
+        public override int GetHashCode() => HashCode.Combined(Position.GetHashCode(), Context.GetHashCode());
     }
-    
-    /// <summary>
-    /// Describes a character position in an input stream.
-    /// </summary>
-    public class Position
+
+    public sealed class End<E> : Input<E>, IEquatable<End<E>>
     {
-        /// <summary>
-        /// Zero-based absolute offset (in unicode characters) in the input stream. 
-        /// </summary>
-        public readonly uint Absolute;
-
-        /// <summary>
-        /// Creates a new scan position.
-        /// </summary>
-        /// <param name="absolute">Zero-based absolute offset (in unicode characters) in the input stream. </param>
-        /// <param name="row">Zero-based effective row in the input stream.</param>
-        /// <param name="column">Zero-based effective column in the input stream.</param>
-        public Position(uint absolute)
+        public End(int position, ParsingContext<E> context) : base(position, context)
         {
-            Absolute = absolute;
         }
 
-        /// <summary>
-        /// Adds a positive number of characters to the scan position.
-        /// </summary>
-        /// <remarks>
-        /// This operation advances the absolute and column values, but does not affect the row.
-        /// </remarks>
-        /// <param name="position">Original position</param>
-        /// <param name="positions">Number of characters to advance.</param>
-        /// <returns>The new position.</returns>
-        public static Position operator +(Position position, uint positions)
+        public override T Select<T>(Func<Element<E>, T> element = null, Func<End<E>, T> end = null) =>
+            end == null
+                ? default
+                : end(this);
+
+        public override string ToString() => $"End@{Position}";
+
+        public bool Equals(End<E> other) => base.Equals(other);
+    }
+
+    public sealed class Element<E> : Input<E>, IEquatable<Element<E>>
+    {
+        public Input<E> Next() => Context.GetElement(Position + 1);
+
+        public E Value => Context.GetElementValue(Position);
+
+        private int _hashcode;
+
+        public Element(int position, ParsingContext<E> context) : base(position, context)
         {
-            return positions == 0
-                ? position
-                : new Position(position.Absolute + positions);
         }
+
+        public override T Select<T>(Func<Element<E>, T> element = null, Func<End<E>, T> end = null) =>
+            element == null
+                ? default
+                : element(this);
+
+        public override string ToString() => $"[{Value}]@{Position}";
+
+        public bool Equals(Element<E> other) => base.Equals(other);
     }
 }

@@ -32,7 +32,7 @@ namespace Aethon.Glare.Parsing
 //        Task<ParseResult<TInput, TMatch>> Match(Input<TInput> input);
 //    }
 
-    public interface IParser<TInput>
+    public interface IParser<E>
     {
         /// <summary>
         /// Key to use to identify this parser.
@@ -40,32 +40,10 @@ namespace Aethon.Glare.Parsing
         object Key { get; }        
     }
     
-    public interface IParser<TInput, TMatch> : IParser<TInput>
+    public interface IParser<E, M> : IParser<E>
     {
-        Task<ParseResult<TInput, TMatch>> Resolve(Input<TInput> input);
+        Task<ParseResult<E, M>> Resolve(Input<E> input);
     }
 
-    public delegate Task<ParseResult<TInput, TMatch>> ParseMethod<TInput, TMatch>(Input<TInput> input);
-    
-//    /// <summary>
-//    /// Tests an input element and returns the resulting <see cref="WorkList{T}"/>
-//    /// </summary>
-//    /// <param name="input">Input element to examine</param>
-//    /// <typeparam name="TInput">Input element type</typeparam>
-//    public delegate Resolution<TInput> Matcher<TInput>(InputElement<TInput> input);
-//
-//    /// <summary>
-//    /// Applies a parser match and returns the resulting <see cref="WorkList{T}"/>
-//    /// </summary>
-//    /// <param name="match">Match value</param>
-//    /// <typeparam name="TInput">Input element type</typeparam>
-//    /// <typeparam name="TMatch">Parse result type</typeparam>
-//    public delegate WorkList<TInput> Resolver<TInput, TMatch>(Resolution<TInput, TMatch> match);
-
-    /// <summary>
-    /// Registers a parser to start matching the input stream.
-    /// </summary>
-    /// <param name="registrar">Registration that will accept the registration and start the parser</param>
-    /// <typeparam name="TInput">Input element type</typeparam>
-//    public delegate void /*ImmutableList<RegisterParser<TInput>>*/ RegisterParser<TInput>(IPackrat<TInput> registrar);
+    public delegate Task<ParseResult<E, M>> ParseMethod<E, M>(Input<E> input);
 }

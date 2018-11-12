@@ -8,32 +8,32 @@ using static Aethon.Glare.Parsing.ParseStuff;
 
 namespace Aethon.Glare.Parsing
 {
-    public class ReturnParserUnitTests: ParsingUnitTest
+    public class MatchEndParserUnitTests: ParsingUnitTest
     {
-        public ReturnParserUnitTests(ITestOutputHelper output) : base(output)
+        public MatchEndParserUnitTests(ITestOutputHelper output) : base(output)
         {
         }
 
         [Fact]
-        public async Task Resolve_WithElement_ReturnsMatchedValueWithoutConsuming()
+        public async Task Resolve_WithElement_DoesNotMatchAndDoesNotConsume()
         {
             var context = ParsingContext.Create("data");
-            var subject = Parsers<char>.Return('a');
+            var subject = Parsers<char>.MatchEnd();
 
             var result = (await subject.ParseAndDump(context.Start, Out));
 
-            result.Should().Be(SingleMatch('a', context.Start));
+            result.Should().Be(Nothing<char, NoValue>("end", 0));
         }
         
         [Fact]
-        public async Task Resolve_WithEnd_ReturnsMatchedValueWithoutConsuming()
+        public async Task Resolve_WithEnd_ReturnsNoValueWithoutConsuming()
         {
             var context = ParsingContext.Create("data");
-            var subject = Parsers<char>.Return('e');
+            var subject = Parsers<char>.MatchEnd();
 
             var result = await subject.ParseAndDump(context.End, Out);
 
-            result.Should().Be(SingleMatch('e', context.End));
+            result.Should().Be(SingleMatch(NoValue.Instance, context.End));
         }
     }
 }

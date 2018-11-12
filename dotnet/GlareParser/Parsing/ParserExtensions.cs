@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.Data;
 using System.Linq;
 using System.Net.Http.Headers;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using static Aethon.Glare.Util.Preconditions;
@@ -19,17 +20,14 @@ namespace Aethon.Glare.Parsing
         /// Creates a new <see cref="T:BasicParser`2"/>.
         /// </summary>
         /// <param name="start">Function to create the work list to start the parser</param>
-        /// <typeparam name="TInput">Input element type</typeparam>
-        /// <typeparam name="TMatch">Parse result type</typeparam>
+        /// <typeparam name="E">Input element type</typeparam>
+        /// <typeparam name="M">Parse result type</typeparam>
         /// <returns>The new parser</returns>
-//        public static BasicParser<TInput, TMatch> Parser<TInput, TMatch>(
-//            Func<Resolver<TInput, TMatch>, WorkList<TInput>> start) =>
-//            new BasicParser<TInput, TMatch>("{parser}", start);
-        public static BasicParser<TInput, TMatch> Parser<TInput, TMatch>(
-            ParseMethod<TInput, TMatch> resolver)
+        public static BasicParser<E, M> Parser<E, M>(
+            ParseMethod<E, M> resolver)
         {
             if (resolver == null) throw new ArgumentNullException(nameof(resolver));
-            return new BasicParser<TInput, TMatch>("{parser}", resolver);
+            return new BasicParser<E, M>("{parser}", resolver);
         }
 
 //        /// <summary>
@@ -77,21 +75,21 @@ namespace Aethon.Glare.Parsing
 //        /// <typeparam name="TMatch1">This parser's match type</typeparam>
 //        /// <typeparam name="TMatch2">Second parser's match type</typeparam>
 //        /// <returns></returns>
-        public static BasicParser<TInput, TMatch2> Then<TInput, TMatch1, TMatch2>(this IParser<TInput, TMatch1> @this,
-            Func<TMatch1, IParser<TInput, TMatch2>> next) =>
-            Parser<TInput, TMatch2>(async input =>
+        public static BasicParser<E, M2> Bind<E, M1, M2>(this IParser<E, M1> @this,
+            Func<M1, IParser<E, M2>> next) =>
+            Parser<E, M2>(async input =>
             {
-                switch (await input.Resolve(@this))
-                {
-                    case Match<TInput, TMatch1> match:
-                        return (await Task.WhenAll(match.Alternatives.Select(alt =>
-                                alt.RemainingInput.Resolve(next(alt.Value)))))
-                            .Aggregate((a, r) => a.And(r));
-                    case Nothing<TInput, TMatch1> nothing:
-                        return nothing.As<TMatch2>();
-                    default:
-                        throw new Exception();
-                }
+                return await (await input.Resolve(@this)).Bind(next);
+//                {
+//                    case Match<TInput, TMatch1> match:
+//                        return (await Task.WhenAll(match.Alternatives.Select(alt =>
+//                                alt.RemainingInput.Resolve(next(alt.Value)))))
+//                            .Aggregate((a, r) => a.And(r));
+//                    case Nothing<TInput, TMatch1> nothing:
+//                        return nothing.As<TMatch2>();
+//                    default:
+//                        throw new Exception();
+//                }
             });
 
 //
@@ -108,36 +106,18 @@ namespace Aethon.Glare.Parsing
 //        /// <typeparam name="TMatch2">Second parser's match type</typeparam>
 //        /// <typeparam name="TResult">Transformed type</typeparam>
 //        /// <returns></returns>
-//        public static IParser<TInput, TResult> SelectMany<TInput, TMatch1, TMatch2, TResult>(
-//            this IParser<TInput, TMatch1> @this, Func<TMatch1, IParser<TInput, TMatch2>> next,
-//            Func<TMatch1, TMatch2, TResult> resultSelector)
-//        {
-//            NotNull(@this, nameof(@this));
-//            NotNull(next, nameof(next));
-//            NotNull(resultSelector, nameof(resultSelector));
-//            return Parser<TInput, TResult>(resolver => Work(@this, resolution1 =>
-//            {
-//                switch (resolution1)
-//                {
-//                    case Match<TInput, TMatch1> match1:
-//                        return Work(next(match1.Value), resolution2 =>
-//                        {
-//                            switch (resolution2)
-//                            {
-//                                case Match<TInput, TMatch2> match2:
-//                                    return resolver(new Match<TInput, TResult>(resultSelector(match1.Value, match2.Value)));
-//                                case Failure<TInput, TMatch2> failure2:
-//                                    return resolver(failure2.As<TResult>());
-//                                default:
-//                                    throw new Exception(); // TODO
-//                            }
-//                        });
-//                    case Failure<TInput, TMatch1> failure1:
-//                        return resolver(failure1.As<TResult>());
-//                    default:
-//                        throw new Exception(); // TODO
-//                }
-//            }));
-//        }
+        public static IParser<E, T> SelectMany<E, M1, M2, T>(
+            this IParser<E, M1> @this, Func<M1, IParser<E, M2>> next,
+            Func<M1, M2, T> resultSelector)
+        {
+            NotNull(@this, nameof(@this));
+            NotNull(next, nameof(next));
+            NotNull(resultSelector, nameof(resultSelector));
+            return Parser<E, T>(async input =>
+            {
+                return await (await input.Resolve(@this)).Bind(async (m1, r1) =>
+                    (await next(m1).Bind(m2 => Parsers<E>.Return(resultSelector(m1, m2))).Resolve(r1)));
+            });
+        }
     }
 }

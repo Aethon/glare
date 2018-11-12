@@ -5,14 +5,27 @@ namespace Aethon.Glare.Parsing
 {
     public static class ParseStuff
     {
-        public static Alternative<TInput, TMatch> Alt<TInput, TMatch>(TMatch value, Input<TInput> remainingInput) =>
-            new Alternative<TInput, TMatch>(value, remainingInput);
+        public static Alternative<E, M> Alt<E, M>(M value, Input<E> remainingInput) =>
+            new Alternative<E, M>(value, remainingInput);
 
-        public static ParseResult<TInput, TMatch> SingleMatch<TInput, TMatch>(TMatch value,
-            Input<TInput> remainingInput) =>
-            new Match<TInput, TMatch>(ImmutableList.Create(Alt(value, remainingInput)));
+        public static FailedExpectation FailedExpectation(string type, int position,
+            ImmutableHashSet<FailedExpectation> causes) =>
+            new FailedExpectation(type, position, causes);
 
-        public static ParseResult<TInput, TMatch> Matches<TInput, TMatch>(params Alternative<TInput, TMatch>[] alts) =>
-            new Match<TInput, TMatch>(ImmutableList.CreateRange(alts));
+        public static FailedExpectation FailedExpectation(string type, int position) =>
+            new FailedExpectation(type, position);
+
+        public static ParseResult<E, M> SingleMatch<E, M>(M value,
+            Input<E> remainingInput) =>
+            new Match<E, M>(ImmutableHashSet.Create(Alt(value, remainingInput)));
+
+        public static ParseResult<E, M> Matches<E, M>(params Alternative<E, M>[] alts) =>
+            new Match<E, M>(ImmutableHashSet.CreateRange(alts));
+
+        public static ParseResult<E, M> Matches<E, M>(ImmutableHashSet<Alternative<E, M>> alts) =>
+            new Match<E, M>(alts);
+
+        public static ParseResult<E, M> Nothing<E, M>(string type, int position) =>
+            new Nothing<E, M>(ImmutableHashSet.Create(FailedExpectation(type, position)));
     }
 }

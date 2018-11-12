@@ -7,14 +7,14 @@ namespace Aethon.Glare.Parsing
     /// <summary>
     /// An <see cref="T:Aethon.Glare.Parsing.IParser`1" /> with a description.
     /// </summary>
-    /// <typeparam name="TInput">Input element type</typeparam>
-    /// <typeparam name="TMatch">Parse result type</typeparam>
-    public class BasicParser<TInput, TMatch> : IParser<TInput, TMatch>
+    /// <typeparam name="E">Input element type</typeparam>
+    /// <typeparam name="M">Parse result type</typeparam>
+    public class BasicParser<E, M> : IParser<E, M>
     {
         /// <summary>
         /// Function to create the work list to start the parser.
         /// </summary>
-        private readonly ParseMethod<TInput, TMatch> _method;
+        private readonly ParseMethod<E, M> _method;
         
         /// <summary>
         /// Description of the parser.
@@ -25,15 +25,15 @@ namespace Aethon.Glare.Parsing
         public object Key => this;
         
 //        /// <inheritdoc/>
-        public Task<ParseResult<TInput, TMatch>> Resolve(Input<TInput> input) => _method(input);
+        public Task<ParseResult<E, M>> Resolve(Input<E> input) => _method(input);
 
         /// <summary>
         /// Creates a new parser from this parser with a new description.
         /// </summary>
         /// <param name="description">Description of the parser</param>
         /// <returns>The new parser</returns>
-        public BasicParser<TInput, TMatch> WithDescription(string description) =>
-            new BasicParser<TInput, TMatch>(description, _method);
+        public BasicParser<E, M> WithDescription(string description) =>
+            new BasicParser<E, M>(description, _method);
 
         /// <inheritdoc/>
         public override string ToString() => _description;
@@ -43,7 +43,7 @@ namespace Aethon.Glare.Parsing
         /// </summary>
         /// <param name="description">Description of the parser</param>
         /// <param name="start">Function to create the work list to start the parser</param>
-        public BasicParser(string description, ParseMethod<TInput, TMatch> method)
+        public BasicParser(string description, ParseMethod<E, M> method)
         {
             _method = method;
             _description = description;
