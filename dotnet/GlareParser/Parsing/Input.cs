@@ -38,6 +38,9 @@ namespace Aethon.Glare.Parsing
         public Task<ParseResult<E, M>> Resolve<M>(IParser<E, M> parser, Input<E> input) =>
             _packrat.Resolve(parser, input);
 
+        public Task<ParseResult<E, M>> Resolve<M>(IList<IParser<E, M>> parsers, Input<E> input) =>
+            _packrat.Resolve(parsers, input);
+
         public Input<E> Start => GetElement(0);
         public Input<E> End => new End<E>(_source.ElementCount, this);
 
@@ -72,6 +75,9 @@ namespace Aethon.Glare.Parsing
 
         public Task<ParseResult<E, TMatch>> Resolve<TMatch>(IParser<E, TMatch> parser) =>
             Context.Resolve(parser, this);
+        
+        public Task<ParseResult<E, TMatch>> Resolve<TMatch>(IList<IParser<E, TMatch>> parsers) =>
+            Context.Resolve(parsers, this);
 
         public abstract T Select<T>(Func<Element<E>, T> element = null, Func<End<E>, T> end = null);
 

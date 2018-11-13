@@ -32,12 +32,17 @@ namespace Aethon.Glare.Parsing
 //        Task<ParseResult<TInput, TMatch>> Match(Input<TInput> input);
 //    }
 
-    public interface IParser<E>
+    public interface IExpectation
+    {
+        string Description { get; }
+    }
+    
+    public interface IParser<E>: IExpectation
     {
         /// <summary>
         /// Key to use to identify this parser.
         /// </summary>
-        object Key { get; }        
+      //  object Key { get; }        
     }
     
     public interface IParser<E, M> : IParser<E>

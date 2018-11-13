@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Threading.Tasks;
-using static Aethon.Glare.Util.Preconditions;
+using Aethon.Glare.Util;
 
-namespace Aethon.Glare.Parsing
+namespace Aethon.Glare.Parsing.Parsers
 {
     /// <inheritdoc />
     /// <summary>
@@ -24,11 +24,8 @@ namespace Aethon.Glare.Parsing
         {
             if (_parser != null)
                 throw new InvalidOperationException("Deferred parser has already been initialized");
-            _parser = NotNull(parser, nameof(parser));
+            _parser = Preconditions.NotNull(parser, nameof(parser));
         }
-
-        /// <inheritdoc/>
-        public object Key => _parser.Key;
 
         /// <inheritdoc/>
          public Task<ParseResult<E, M>> Resolve(Input<E> input)
@@ -39,7 +36,6 @@ namespace Aethon.Glare.Parsing
         }
 
         /// <inheritdoc/>
-        public override string ToString() => 
-            _parser == null ? "[unset deferred parser]" : _parser.ToString();
+        public string Description => _parser?.Description ?? "[unset deferred parser]";
     }
 }

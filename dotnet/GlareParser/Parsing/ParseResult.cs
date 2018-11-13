@@ -175,18 +175,19 @@ namespace Aethon.Glare.Parsing
 
     public sealed class FailedExpectation : IEquatable<FailedExpectation>
     {
-        public readonly string Type;
+        public readonly IExpectation Expectation;
         public readonly int Position;
+        
         public readonly ImmutableHashSet<FailedExpectation> Causes;
 
-        public FailedExpectation(string type, int position) : this(type, position,
+        public FailedExpectation(IExpectation expectation, int position) : this(expectation, position,
             ImmutableHashSet<FailedExpectation>.Empty)
         {
         }
 
-        public FailedExpectation(string type, int position, ImmutableHashSet<FailedExpectation> causes)
+        public FailedExpectation(IExpectation expectation, int position, ImmutableHashSet<FailedExpectation> causes)
         {
-            Type = type;
+            Expectation = expectation;
             Position = position;
             Causes = causes;
         }
@@ -195,7 +196,7 @@ namespace Aethon.Glare.Parsing
         {
             if (ReferenceEquals(null, other)) return false;
             if (ReferenceEquals(this, other)) return true;
-            return string.Equals(Type, other.Type) && Position == other.Position && Causes.SetEquals(other.Causes);
+            return Expectation.Equals(other.Expectation) && Position == other.Position && Causes.SetEquals(other.Causes);
         }
 
         public override bool Equals(object obj) =>
@@ -205,13 +206,13 @@ namespace Aethon.Glare.Parsing
         {
             unchecked
             {
-                var hashCode = (Type != null ? Type.GetHashCode() : 0);
+                var hashCode = Expectation.GetHashCode();
                 hashCode = (hashCode * 397) ^ Position;
                 hashCode = (hashCode * 397) ^ HashCode.For(Causes);
                 return hashCode;
             }
         }
 
-        public override string ToString() => $"Expected {Type} at {Position} (causes: [{string.Join(", ", Causes)}])";
+        public override string ToString() => $"Expected {Expectation.Description} at {Position} (causes: [{string.Join(", ", Causes)}])";
     }
 }

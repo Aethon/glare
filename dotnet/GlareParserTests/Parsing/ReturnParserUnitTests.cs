@@ -1,14 +1,12 @@
-using System;
-using System.Collections.Immutable;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Xunit;
 using Xunit.Abstractions;
-using static Aethon.Glare.Parsing.ParseStuff;
+using static Aethon.Glare.Parsing.ParserFactory;
 
 namespace Aethon.Glare.Parsing
 {
-    public class ReturnParserUnitTests: ParsingUnitTest
+    public class ReturnParserUnitTests: ParsingUnitTest<char>
     {
         public ReturnParserUnitTests(ITestOutputHelper output) : base(output)
         {
@@ -18,7 +16,7 @@ namespace Aethon.Glare.Parsing
         public async Task Resolve_WithElement_ReturnsMatchedValueWithoutConsuming()
         {
             var context = ParsingContext.Create("data");
-            var subject = Parsers<char>.Return('a');
+            var subject = Return<char, char>('a');
 
             var result = (await subject.ParseAndDump(context.Start, Out));
 
@@ -29,7 +27,7 @@ namespace Aethon.Glare.Parsing
         public async Task Resolve_WithEnd_ReturnsMatchedValueWithoutConsuming()
         {
             var context = ParsingContext.Create("data");
-            var subject = Parsers<char>.Return('e');
+            var subject = Return<char, char>('e');
 
             var result = await subject.ParseAndDump(context.End, Out);
 
